@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>002 — Dutch Housing Market Forecast · Ishan Sewnandan</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#F4F2EE;
+  --white:#FFFFFF;
+  --ink:#0D0D0D;
+  --ink-mid:#3A3A3A;
+  --ink-dim:#888;
+  --border:#E0DDD8;
+  --border-dk:#C8C4BE;
+  --accent:#5C8A3C;
+  --accent-lt:#EEF5E8;
+  --tag-bg:#EDEBE6;
+}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'JetBrains Mono',monospace;
+  font-weight:300;
+  overflow-x:hidden;
+  cursor:crosshair;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:radial-gradient(circle,#C8C4BE 1px,transparent 1px);
+  background-size:36px 36px;
+  opacity:0.22;pointer-events:none;z-index:0;
+}
+
+/* ── PROGRESS BAR ── */
+#progress-bar{position:fixed;top:0;left:0;height:2px;background:var(--accent);width:0%;z-index:9999;transition:width 0.08s linear;}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 52px;
+  background:rgba(244,242,238,0.93);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.nav-id{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.nav-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:blink 2.5s ease infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
+.nav-name{font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink);}
+.nav-back{
+  display:flex;align-items:center;gap:8px;
+  font-size:0.62rem;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--ink-dim);text-decoration:none;
+  border:1px solid var(--border-dk);border-radius:2px;padding:5px 14px;
+  transition:all 0.2s;
+}
+.nav-back:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-lt);}
+.nav-back svg{width:10px;height:10px;transition:transform 0.2s;}
+.nav-back:hover svg{transform:translateX(-3px);}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  padding-top:90px;
+  position:relative;
+  z-index:1;
+}
+.hero-left{
+  padding:80px 52px 60px;
+  display:flex;flex-direction:column;justify-content:center;
+  border-right:1px solid var(--border);
+}
+.hero-tag{
+  font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:28px;
+  display:flex;align-items:center;gap:10px;
+}
+.hero-tag::before{content:'';display:block;width:32px;height:1px;background:var(--accent);}
+.hero-num{
+  font-family:'Instrument Serif',serif;
+  font-size:clamp(6rem,12vw,11rem);
+  line-height:0.85;
+  color:var(--ink);
+  opacity:0.07;
+  position:absolute;
+  top:90px;left:40px;
+  pointer-events:none;
+  z-index:0;
+}
+.hero-title{
+  font-family:'Syne',sans-serif;
+  font-size:clamp(2.4rem,4.5vw,4.2rem);
+  font-weight:800;
+  line-height:1.06;
+  letter-spacing:-0.02em;
+  color:var(--ink);
+  position:relative;z-index:1;
+  margin-bottom:28px;
+}
+.hero-title em{
+  font-family:'Instrument Serif',serif;
+  font-style:italic;
+  font-weight:400;
+  color:var(--accent);
+}
+.hero-desc{
+  font-size:0.78rem;line-height:1.85;
+  color:var(--ink-mid);
+  max-width:420px;
+  margin-bottom:40px;
+}
+.hero-meta{
+  display:flex;flex-direction:column;gap:10px;
+  border-top:1px solid var(--border);
+  padding-top:28px;
+}
+.meta-row{
+  display:flex;align-items:center;gap:12px;
+  font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--ink-dim);
+}
+.meta-row strong{color:var(--ink);font-weight:500;}
+.meta-dot{width:4px;height:4px;border-radius:50%;background:var(--border-dk);}
+
+/* ── HERO RIGHT — VISUAL ── */
+.hero-right{
+  display:flex;align-items:center;justify-content:center;
+  padding:80px 52px;
+  position:relative;
+  overflow:hidden;
+  background:var(--white);
+  border-left:1px solid var(--border);
+}
+.chart-wrapper{
+  width:100%;max-width:480px;
+  position:relative;z-index:1;
+}
+.chart-label{
+  font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--ink-dim);margin-bottom:20px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.chart-label span{color:var(--accent);}
+/* Animated SVG line chart */
+.chart-svg{width:100%;height:220px;overflow:visible;}
+.chart-axis{stroke:var(--border-dk);stroke-width:1;}
+.chart-grid{stroke:var(--border);stroke-width:0.5;stroke-dasharray:4,6;}
+.chart-line-hist{
+  fill:none;stroke:var(--ink);stroke-width:2;
+  stroke-dasharray:500;stroke-dashoffset:500;
+  animation:drawLine 2s ease forwards 0.4s;
+}
+.chart-line-fore{
+  fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:4,3;
+  stroke-dasharray:300;stroke-dashoffset:300;
+  animation:drawLine 1.2s ease forwards 2.4s;
+}
+.chart-area{
+  fill:url(#areaGrad);
+  opacity:0;
+  animation:fadeArea 0.8s ease forwards 2.2s;
+}
+@keyframes drawLine{to{stroke-dashoffset:0;}}
+@keyframes fadeArea{to{opacity:1;}}
+
+.chart-dot{
+  fill:var(--white);stroke:var(--accent);stroke-width:2;
+  transform-origin:center;
+  opacity:0;
+  animation:popDot 0.3s ease forwards;
+}
+.chart-year{font-size:0.55rem;fill:var(--ink-dim);font-family:'JetBrains Mono',monospace;}
+.chart-price{font-size:0.6rem;fill:var(--ink);font-family:'JetBrains Mono',monospace;font-weight:500;}
+@keyframes popDot{to{opacity:1;transform:scale(1);}}
+
+/* Province bars */
+.bar-chart{margin-top:28px;}
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.bar-label{font-size:0.58rem;letter-spacing:0.06em;color:var(--ink-mid);width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{flex:1;height:6px;background:var(--tag-bg);border-radius:3px;overflow:hidden;}
+.bar-fill{
+  height:100%;border-radius:3px;background:var(--accent);
+  width:0%;
+  transition:width 1.2s cubic-bezier(0.16,1,0.3,1);
+}
+.bar-val{font-size:0.55rem;color:var(--ink-dim);white-space:nowrap;}
+
+/* ── SECTION BASE ── */
+section{position:relative;z-index:1;}
+
+/* ── SECTION: AANPAK ── */
+.section-aanpak{
+  padding:100px 52px;
+  border-top:1px solid var(--border);
+}
+.section-header{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:64px;
+  gap:40px;
+}
+.sh-left{}
+.sh-tag{font-size:0.58rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:12px;}
+.sh-title{
+  font-family:'Syne',sans-serif;
+  font-size:clamp(1.6rem,3vw,2.8rem);
+  font-weight:800;letter-spacing:-0.02em;line-height:1.1;
+}
+.sh-title em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;}
+.sh-desc{max-width:380px;font-size:0.72rem;line-height:1.8;color:var(--ink-mid);margin-top:0;}
+
+.steps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);}
+.step{
+  background:var(--bg);
+  padding:36px 28px;
+  position:relative;
+  overflow:hidden;
+  transition:background 0.25s;
+}
+.step:hover{background:var(--white);}
+.step-num{
+  font-family:'Instrument Serif',serif;font-style:italic;
+  font-size:3.5rem;color:var(--border-dk);
+  position:absolute;top:12px;right:16px;line-height:1;
+}
+.step-icon{
+  width:36px;height:36px;
+  border:1px solid var(--border-dk);border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  margin-bottom:18px;
+  font-size:1rem;
+}
+.step-title{font-family:'Syne',sans-serif;font-size:0.88rem;font-weight:700;margin-bottom:10px;}
+.step-body{font-size:0.65rem;line-height:1.75;color:var(--ink-mid);}
+.step-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:14px;}
+.step-tag{font-size:0.55rem;letter-spacing:0.08em;padding:3px 8px;background:var(--tag-bg);border-radius:2px;color:var(--ink-mid);}
+
+/* ── SECTION: MODEL ── */
+.section-model{
+  padding:100px 52px;
+  border-top:1px solid var(--border);
+  background:var(--ink);
+  color:var(--white);
+}
+.section-model .sh-title{color:var(--white);}
+.section-model .sh-tag{color:var(--accent);}
+.section-model .sh-desc{color:rgba(255,255,255,0.5);}
+
+.model-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:rgba(255,255,255,0.08);margin-top:56px;}
+.model-card{
+  background:var(--ink);
+  padding:36px 32px;
+  border-left:2px solid transparent;
+  transition:all 0.25s;
+  position:relative;overflow:hidden;
+}
+.model-card.best{border-left-color:var(--accent);}
+.model-card:hover{background:#1a1a1a;}
+.model-badge{
+  position:absolute;top:20px;right:20px;
+  font-size:0.52rem;letter-spacing:0.12em;text-transform:uppercase;
+  padding:3px 10px;background:var(--accent);color:var(--white);border-radius:2px;
+}
+.model-name{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;margin-bottom:22px;color:var(--white);}
+.model-metric{margin-bottom:14px;}
+.model-metric-label{font-size:0.55rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:4px;}
+.model-metric-val{font-family:'Syne',sans-serif;font-size:1.4rem;font-weight:700;color:var(--white);}
+.model-metric-val.green{color:var(--accent);}
+.model-desc{font-size:0.62rem;line-height:1.75;color:rgba(255,255,255,0.45);margin-top:20px;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;}
+
+/* ── SECTION: RESULTATEN ── */
+.section-results{padding:100px 52px;border-top:1px solid var(--border);}
+.results-layout{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:56px;align-items:start;}
+
+.insight-list{display:flex;flex-direction:column;gap:1px;background:var(--border);}
+.insight{
+  background:var(--bg);
+  padding:24px 28px;
+  display:grid;grid-template-columns:48px 1fr;gap:20px;align-items:start;
+  transition:background 0.2s;
+}
+.insight:hover{background:var(--white);}
+.insight-num{
+  font-family:'Instrument Serif',serif;font-style:italic;
+  font-size:2rem;color:var(--border-dk);line-height:1;
+}
+.insight-title{font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:700;margin-bottom:6px;}
+.insight-body{font-size:0.65rem;line-height:1.75;color:var(--ink-mid);}
+
+.province-table{width:100%;border-collapse:collapse;font-size:0.65rem;}
+.province-table th{
+  text-align:left;padding:10px 14px;
+  font-size:0.55rem;letter-spacing:0.12em;text-transform:uppercase;
+  color:var(--ink-dim);
+  border-bottom:2px solid var(--border-dk);
+}
+.province-table td{padding:12px 14px;border-bottom:1px solid var(--border);}
+.province-table tr:hover td{background:var(--white);}
+.prov-name{font-family:'Syne',sans-serif;font-weight:600;font-size:0.72rem;}
+.prov-price{font-weight:500;}
+.prov-change{font-size:0.62rem;}
+.prov-change.up{color:var(--accent);}
+.prov-change.down{color:#E05252;}
+.prov-bar-wrap{width:80px;}
+.prov-bar{height:4px;background:var(--tag-bg);border-radius:2px;overflow:hidden;}
+.prov-bar-fill{height:100%;background:var(--accent);border-radius:2px;}
+
+/* ── SECTION: CODE ── */
+.section-code{
+  padding:100px 52px;
+  border-top:1px solid var(--border);
+  background:var(--white);
+}
+.code-layout{display:grid;grid-template-columns:1fr 1.4fr;gap:48px;margin-top:56px;align-items:start;}
+.code-info{}
+.code-files{display:flex;flex-direction:column;gap:10px;margin-top:28px;}
+.code-file{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 18px;
+  border:1px solid var(--border);border-radius:4px;
+  transition:all 0.2s;cursor:pointer;
+}
+.code-file:hover{border-color:var(--accent);background:var(--accent-lt);}
+.file-icon{width:32px;height:32px;border-radius:4px;background:var(--tag-bg);display:flex;align-items:center;justify-content:center;font-size:0.9rem;flex-shrink:0;}
+.file-name{font-family:'Syne',sans-serif;font-size:0.75rem;font-weight:600;}
+.file-desc{font-size:0.6rem;color:var(--ink-dim);margin-top:2px;}
+.file-badge{margin-left:auto;font-size:0.52rem;letter-spacing:0.1em;padding:3px 8px;background:var(--tag-bg);border-radius:2px;color:var(--ink-mid);}
+
+.code-block{
+  background:#0D0D0D;
+  border-radius:8px;
+  overflow:hidden;
+  font-size:0.65rem;
+  line-height:1.7;
+}
+.code-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 18px;
+  background:#1a1a1a;
+  border-bottom:1px solid #2a2a2a;
+}
+.code-dots{display:flex;gap:6px;}
+.code-dot{width:10px;height:10px;border-radius:50%;}
+.code-dot.r{background:#FF5F56;}
+.code-dot.y{background:#FFBD2E;}
+.code-dot.g{background:#27C93F;}
+.code-filename{font-size:0.58rem;letter-spacing:0.08em;color:rgba(255,255,255,0.3);}
+.code-body{padding:24px 22px;overflow-x:auto;}
+.code-body pre{color:rgba(255,255,255,0.75);}
+.kw{color:#C792EA;}
+.fn{color:#82AAFF;}
+.str{color:#C3E88D;}
+.cm{color:rgba(255,255,255,0.3);font-style:italic;}
+.num{color:#F78C6C;}
+.var{color:#FFCB6B;}
+
+/* ── SECTION: TOOLS ── */
+.section-tools{
+  padding:80px 52px;
+  border-top:1px solid var(--border);
+}
+.tools-row{
+  display:flex;flex-wrap:wrap;gap:10px;
+  margin-top:40px;
+}
+.tool-pill{
+  display:flex;align-items:center;gap:8px;
+  padding:10px 18px;
+  border:1px solid var(--border-dk);
+  border-radius:100px;
+  font-size:0.65rem;letter-spacing:0.06em;
+  color:var(--ink-mid);
+  transition:all 0.2s;
+}
+.tool-pill:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-lt);}
+.tool-dot{width:6px;height:6px;border-radius:50%;background:var(--border-dk);}
+.tool-pill:hover .tool-dot{background:var(--accent);}
+
+/* ── SECTION: NAV FOOTER ── */
+.section-navfoot{
+  border-top:1px solid var(--border);
+  display:grid;grid-template-columns:1fr 1fr;
+}
+.navfoot-prev,.navfoot-next{
+  padding:48px 52px;
+  display:flex;flex-direction:column;gap:8px;
+  text-decoration:none;
+  transition:background 0.2s;
+  color:var(--ink);
+}
+.navfoot-prev{border-right:1px solid var(--border);}
+.navfoot-prev:hover,.navfoot-next:hover{background:var(--white);}
+.navfoot-dir{font-size:0.55rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-dim);}
+.navfoot-label{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;}
+.navfoot-sub{font-size:0.62rem;color:var(--ink-dim);}
+
+/* ── FOOTER ── */
+footer{
+  padding:32px 52px;
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:0.6rem;letter-spacing:0.08em;color:var(--ink-dim);
+  position:relative;z-index:1;
+}
+
+/* ── REVEAL ANIMATION ── */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity 0.7s ease,transform 0.7s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1100px){
+  .steps-grid{grid-template-columns:1fr 1fr;}
+  .model-grid{grid-template-columns:1fr;}
+  .results-layout{grid-template-columns:1fr;}
+  .code-layout{grid-template-columns:1fr;}
+}
+@media(max-width:768px){
+  nav{padding:14px 20px;}
+  .hero{grid-template-columns:1fr;}
+  .hero-right{display:none;}
+  .hero-left{padding:60px 20px 48px;}
+  .section-aanpak,.section-model,.section-results,.section-code,.section-tools{padding:60px 20px;}
+  .section-header{flex-direction:column;}
+  .steps-grid{grid-template-columns:1fr;}
+  .section-navfoot{grid-template-columns:1fr;}
+  .navfoot-prev{border-right:none;border-bottom:1px solid var(--border);}
+  .navfoot-prev,.navfoot-next{padding:32px 20px;}
+  footer{flex-direction:column;gap:12px;padding:24px 20px;}
+}
+
+.nav-actions{display:flex;align-items:center;gap:14px;}
+.lang-toggle{display:flex;align-items:center;border:1px solid var(--border-dk);border-radius:4px;overflow:hidden;background:var(--bg);}
+.lang-btn{padding:5px 10px;background:none;border:none;cursor:pointer;color:var(--ink-dim);font-family:'JetBrains Mono',monospace;font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase;transition:all 0.2s;}
+.lang-btn.active{background:var(--ink);color:#fff;}
+.lang-sep{width:1px;height:20px;background:var(--border-dk);}
+@media(max-width:960px){.nav-actions{gap:10px;}.lang-btn{padding:5px 9px;}}
+@media(max-width:600px){.nav-actions{gap:8px;}.nav-back{padding:5px 10px;}.lang-btn{font-size:0.56rem;padding:5px 8px;}}
+
+</style>
+</head>
+<body>
+<div id="progress-bar"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="../../index.html" class="nav-id">
+    <div class="nav-dot"></div>
+    <span class="nav-name">Ishan Sewnandan</span>
+  </a>
+  <div class="nav-actions">
+    <div class="lang-toggle">
+      <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+      <div class="lang-sep"></div>
+      <button class="lang-btn" id="btn-nl" onclick="setLang('nl')">NL</button>
+    </div>
+    <a href="../../index.html" class="nav-back" id="nav-back-btn">
+      <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L2 5l4 3"/></svg>
+      <span id="nav-back-text">Back to portfolio</span>
+    </a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-num">002</div>
+    <div class="hero-tag">Data Analysis · Predictive Modelling</div>
+    <h1 class="hero-title">Dutch Housing<br>Market <em>Forecast</em></h1>
+    <p class="hero-desc">Regional price trend modelling using CBS & Kadaster open data. Regression analysis across all Dutch provinces to forecast housing prices through 2027.</p>
+    <div class="hero-meta">
+      <div class="meta-row">
+        <span>Status</span><div class="meta-dot"></div>
+        <strong>Completed · 2025</strong>
+      </div>
+      <div class="meta-row">
+        <span>Data</span><div class="meta-dot"></div>
+        <strong>CBS StatLine · Kadaster Open Data</strong>
+      </div>
+      <div class="meta-row">
+        <span>Tools</span><div class="meta-dot"></div>
+        <strong>Python · Scikit-learn · Pandas · Plotly</strong>
+      </div>
+      <div class="meta-row">
+        <span>Model R²</span><div class="meta-dot"></div>
+        <strong style="color:var(--accent);">0.94+</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANIMATED CHART VISUAL -->
+  <div class="hero-right">
+    <div class="chart-wrapper">
+      <div class="chart-label">
+        <span>Avg. Housing Price NL</span>
+        <span>2015 – 2027 (forecast)</span>
+      </div>
+
+      <!-- Line chart SVG -->
+      <svg class="chart-svg" viewBox="0 0 480 220" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#5C8A3C" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#5C8A3C" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <!-- Grid lines -->
+        <line class="chart-grid" x1="40" y1="20" x2="40" y2="190"/>
+        <line class="chart-grid" x1="40" y1="190" x2="470" y2="190"/>
+        <line class="chart-grid" x1="40" y1="140" x2="470" y2="140"/>
+        <line class="chart-grid" x1="40" y1="100" x2="470" y2="100"/>
+        <line class="chart-grid" x1="40" y1="60" x2="470" y2="60"/>
+        <!-- Y labels -->
+        <text class="chart-year" x="5" y="192">200k</text>
+        <text class="chart-year" x="5" y="143">300k</text>
+        <text class="chart-year" x="5" y="102">400k</text>
+        <text class="chart-year" x="5" y="62">500k</text>
+        <!-- X labels -->
+        <text class="chart-year" x="36" y="205">2015</text>
+        <text class="chart-year" x="116" y="205">2017</text>
+        <text class="chart-year" x="196" y="205">2019</text>
+        <text class="chart-year" x="276" y="205">2021</text>
+        <text class="chart-year" x="356" y="205">2023</text>
+        <text class="chart-year" x="430" y="205" style="fill:#5C8A3C">→27</text>
+
+        <!-- Area under forecast -->
+        <path class="chart-area" d="M356,72 C376,66 396,58 416,50 C436,42 456,36 470,30 L470,190 L356,190 Z"/>
+
+        <!-- Historical line: 2015→2024 -->
+        <!-- Points: 2015=178, 2016=170, 2017=158, 2018=138, 2019=118, 2020=108, 2021=88, 2022=78, 2023=82, 2024=72 -->
+        <path class="chart-line-hist"
+          d="M40,178 C60,174 76,170 96,162 C116,154 136,142 156,130 C176,118 196,110 216,100 C236,90 256,84 276,78 C296,72 316,74 336,72 C346,71 351,71.5 356,72"/>
+
+        <!-- Forecast line: 2024→2027 dashed green -->
+        <path class="chart-line-fore"
+          d="M356,72 C376,66 396,58 416,50 C436,42 456,36 470,30"/>
+
+        <!-- Dots on key years -->
+        <circle class="chart-dot" cx="40" cy="178" r="4" style="animation-delay:0.5s"/>
+        <circle class="chart-dot" cx="156" cy="130" r="4" style="animation-delay:0.8s"/>
+        <circle class="chart-dot" cx="276" cy="78" r="4" style="animation-delay:1.1s"/>
+        <circle class="chart-dot" cx="356" cy="72" r="4" style="animation-delay:1.6s;fill:#5C8A3C;stroke:#5C8A3C"/>
+        <circle class="chart-dot" cx="470" cy="30" r="4" style="animation-delay:2.6s;fill:#5C8A3C;stroke:#5C8A3C"/>
+
+        <!-- Price labels -->
+        <text class="chart-price" x="48" y="174">€228k</text>
+        <text class="chart-price" x="362" y="68">€432k</text>
+        <text class="chart-price" x="400" y="26" style="fill:#5C8A3C">€521k</text>
+      </svg>
+
+      <!-- Province bars -->
+      <div class="bar-chart">
+        <div class="chart-label" style="margin-bottom:12px;">
+          <span>Price growth by province</span>
+          <span>2015 → 2024</span>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Noord-Holland</div>
+          <div class="bar-track"><div class="bar-fill" data-width="92%"></div></div>
+          <div class="bar-val">+92%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Utrecht</div>
+          <div class="bar-track"><div class="bar-fill" data-width="87%"></div></div>
+          <div class="bar-val">+87%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Zuid-Holland</div>
+          <div class="bar-track"><div class="bar-fill" data-width="81%"></div></div>
+          <div class="bar-val">+81%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Groningen</div>
+          <div class="bar-track"><div class="bar-fill" data-width="58%"></div></div>
+          <div class="bar-val">+58%</div>
+        </div>
+        <div class="bar-row">
+          <div class="bar-label">Zeeland</div>
+          <div class="bar-track"><div class="bar-fill" data-width="52%"></div></div>
+          <div class="bar-val">+52%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AANPAK -->
+<section class="section-aanpak reveal">
+  <div class="section-header">
+    <div class="sh-left">
+      <span class="sh-tag">// 01 — approach</span>
+      <h2 class="sh-title">How the <em>model</em><br>was built</h2>
+    </div>
+    <p class="sh-desc">A four-stage pipeline from raw CBS open data to interactive provincial forecasts — built to be reproducible and extendable.</p>
+  </div>
+
+  <div class="steps-grid">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-icon">⬇</div>
+      <div class="step-title">Data Collection</div>
+      <p class="step-body">Pulled housing price data directly from CBS StatLine via the OData API. Tables 83625NED (average sale prices per region) and 85773NED (price index 2020=100) covering 2015–2024.</p>
+      <div class="step-tags">
+        <span class="step-tag">cbsodata</span>
+        <span class="step-tag">CBS API</span>
+        <span class="step-tag">Kadaster</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      
+      <div class="step-title">Feature Engineering</div>
+      <p class="step-body">Created lag features (t-1, t-2), YoY growth rates, and 3-year rolling averages per province. Label-encoded regions and added polynomial year terms to capture non-linear trends.</p>
+      <div class="step-tags">
+        <span class="step-tag">Pandas</span>
+        <span class="step-tag">Lag features</span>
+        <span class="step-tag">Rolling avg</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      
+      <div class="step-title">Model Training</div>
+      <p class="step-body">Time-based split: trained on 2015–2021, tested on 2022–2024. Compared Linear Regression, Random Forest, and Gradient Boosting. Best model selected by R² score.</p>
+      <div class="step-tags">
+        <span class="step-tag">Scikit-learn</span>
+        <span class="step-tag">Cross-validation</span>
+        <span class="step-tag">MAE · RMSE · R²</span>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      
+      <div class="step-title">Visualisation</div>
+      <p class="step-body">Interactive Plotly charts: price trends per province, % growth bar chart, actual vs predicted scatter, feature importance, and an iterative 2025–2027 forecast with rolling lag updates.</p>
+      <div class="step-tags">
+        <span class="step-tag">Plotly</span>
+        <span class="step-tag">HTML export</span>
+        <span class="step-tag">Forecast loop</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MODEL PERFORMANCE -->
+<section class="section-model reveal">
+  <div class="section-header">
+    <div class="sh-left">
+      <span class="sh-tag">// 02 — models</span>
+      <h2 class="sh-title">Three models,<br>one <em>winner</em></h2>
+    </div>
+    <p class="sh-desc">All three models were evaluated on a time-based test set (2022–2024) to simulate real-world forecasting conditions.</p>
+  </div>
+
+  <div class="model-grid">
+    <div class="model-card">
+      <div class="model-name">Linear Regression</div>
+      <div class="model-metric">
+        <div class="model-metric-label">R² Score</div>
+        <div class="model-metric-val">0.81</div>
+      </div>
+      <div class="model-metric">
+        <div class="model-metric-label">MAE</div>
+        <div class="model-metric-val">€28,400</div>
+      </div>
+      <p class="model-desc">Strong baseline. Captures the long-term upward trend well but misses non-linear jumps in high-demand provinces like Noord-Holland and Utrecht.</p>
+    </div>
+    <div class="model-card">
+      <div class="model-name">Random Forest</div>
+      <div class="model-metric">
+        <div class="model-metric-label">R² Score</div>
+        <div class="model-metric-val">0.91</div>
+      </div>
+      <div class="model-metric">
+        <div class="model-metric-label">MAE</div>
+        <div class="model-metric-val">€16,200</div>
+      </div>
+      <p class="model-desc">Significant improvement. Handles regional variation well. Lag features were highly important — the previous year's price was the single strongest predictor.</p>
+    </div>
+    <div class="model-card best">
+      <div class="model-badge">Best model</div>
+      <div class="model-name">Gradient Boosting</div>
+      <div class="model-metric">
+        <div class="model-metric-label">R² Score</div>
+        <div class="model-metric-val green">0.94</div>
+      </div>
+      <div class="model-metric">
+        <div class="model-metric-label">MAE</div>
+        <div class="model-metric-val green">€12,800</div>
+      </div>
+      <p class="model-desc">Best overall. Low learning rate with 200 estimators captured subtle province-level patterns. Used for the 2025–2027 iterative forecast with rolling lag updates.</p>
+    </div>
+  </div>
+</section>
+
+<!-- RESULTATEN -->
+<section class="section-results reveal">
+  <div class="section-header">
+    <div class="sh-left">
+      <span class="sh-tag">// 03 — insights</span>
+      <h2 class="sh-title">Key <em>findings</em><br>from the data</h2>
+    </div>
+    <p class="sh-desc">Four patterns stood out when analysing a decade of Dutch housing data across all twelve provinces.</p>
+  </div>
+
+  <div class="results-layout">
+    <div class="insight-list">
+      <div class="insight">
+        <div class="insight-num">01</div>
+        <div>
+          <div class="insight-title">Randstad premium is widening</div>
+          <p class="insight-body">Noord-Holland, Utrecht, and Zuid-Holland consistently outpace the national average. By 2024, prices in Amsterdam's province are 2.3× those in Zeeland — a gap that's grown every year since 2017.</p>
+        </div>
+      </div>
+      <div class="insight">
+        <div class="insight-num">02</div>
+        <div>
+          <div class="insight-title">Lag-1 is the strongest predictor</div>
+          <p class="insight-body">Feature importance analysis showed that last year's price (prijs_lag1) explains over 68% of the model's predictive power — more than region, year, or growth rate combined.</p>
+        </div>
+      </div>
+      <div class="insight">
+        <div class="insight-num">03</div>
+        <div>
+          <div class="insight-title">2022 dip was short-lived everywhere</div>
+          <p class="insight-body">Rising mortgage rates caused a brief cooling in 2022–2023 across all provinces. By 2024, prices had recovered and exceeded pre-dip levels in 10 out of 12 provinces.</p>
+        </div>
+      </div>
+      <div class="insight">
+        <div class="insight-num">04</div>
+        <div>
+          <div class="insight-title">Forecast: +8–14% growth by 2027</div>
+          <p class="insight-body">The Gradient Boosting model projects continued growth across all provinces through 2027. Flevoland and Utrecht show the steepest forecasted trajectories, while Zeeland and Drenthe grow more modestly.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Province comparison table -->
+    <table class="province-table">
+      <thead>
+        <tr>
+          <th>Province</th>
+          <th>Avg Price 2024</th>
+          <th>Growth 2015→24</th>
+          <th>Trend</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><div class="prov-name">Noord-Holland</div></td>
+          <td class="prov-price">€ 512,000</td>
+          <td><span class="prov-change up">+92%</span></td>
+          <td><div class="prov-bar-wrap"><div class="prov-bar"><div class="prov-bar-fill" style="width:92%"></div></div></div></td>
+        </tr>
+        <tr>
+          <td><div class="prov-name">Utrecht</div></td>
+          <td class="prov-price">€ 489,000</td>
+          <td><span class="prov-change up">+87%</span></td>
+          <td><div class="prov-bar-wrap"><div class="prov-bar"><div class="prov-bar-fill" style="width:87%"></div></div></div></td>
+        </tr>
+        <tr>
+          <td><div class="prov-name">Zuid-Holland</div></td>
+          <td class="prov-price">€ 432,000</td>
+          <td><span class="prov-change up">+81%</span></td>
+          <td><div class="prov-bar-wrap"><div class="prov-bar"><div class="prov-bar-fill" style="width:81%"></div></div></div></td>
+        </tr>
+        <tr>
+          <td><div class="prov-name">Noord-Brabant</div></td>
+          <td class="prov-price">€ 396,000</td>
+          <td><span class="prov-change up">+78%</span></td>
+          <td><div class="prov-bar-wrap"><div class="prov-bar"><div class="prov-bar-fill" style="width:78%"></div></div></div></td>
+        </tr>
+        <tr>
+          <td><div class="prov-name">Gelderland</div></td>
+          <td class="prov-price">€ 378,000</td>
+          <td><span class="prov-change up">+74%</span></td>
+          <td><div class="prov-bar-wrap"><div class="prov-bar"><div class="prov-bar-fill" style="width:74%"></div></div></div></td>
+        </tr>
+        <tr>
+          <td><div class="prov-name">Overijssel</div></td>
+          <td class="prov-price">€ 342,000</td>
+          <td><span class="prov-change up">+69%</span></td>
+          <td><div class="prov-bar-wrap"><div class="prov-bar"><div class="prov-bar-fill" style="width:69%"></div></div></div></td>
+        </tr>
+        <tr>
+          <td><div class="prov-name">Friesland</div></td>
+          <td class="prov-price">€ 298,000</td>
+          <td><span class="prov-change up">+63%</span></td>
+          <td><div class="prov-bar-wrap"><div class="prov-bar"><div class="prov-bar-fill" style="width:63%"></div></div></div></td>
+        </tr>
+        <tr>
+          <td><div class="prov-name">Groningen</div></td>
+          <td class="prov-price">€ 276,000</td>
+          <td><span class="prov-change up">+58%</span></td>
+          <td><div class="prov-bar-wrap"><div class="prov-bar"><div class="prov-bar-fill" style="width:58%"></div></div></div></td>
+        </tr>
+        <tr>
+          <td><div class="prov-name">Zeeland</div></td>
+          <td class="prov-price">€ 256,000</td>
+          <td><span class="prov-change up">+52%</span></td>
+          <td><div class="prov-bar-wrap"><div class="prov-bar"><div class="prov-bar-fill" style="width:52%"></div></div></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- CODE -->
+<section class="section-code reveal">
+  <div class="section-header">
+    <div class="sh-left">
+      <span class="sh-tag">// 04 — code</span>
+      <h2 class="sh-title">Built to be<br><em>reproduced</em></h2>
+    </div>
+    <p class="sh-desc">The full pipeline lives in a single Jupyter notebook. Data is pulled live from CBS on every run — no static files needed.</p>
+  </div>
+
+  <div class="code-layout">
+    <div class="code-info">
+      <p style="font-size:0.72rem;line-height:1.85;color:var(--ink-mid);margin-bottom:28px;">
+        The notebook is fully self-contained. Install the dependencies, run all cells, and two interactive HTML visualisations are generated automatically.
+      </p>
+      <div class="code-files">
+        <div class="code-file">
+          <div class="file-icon" style="background:var(--ink);color:var(--white);font-family:'Syne',sans-serif;font-size:0.55rem;font-weight:700;">.ipynb</div>
+          <div>
+            <div class="file-name">dutch_housing_forecast.ipynb</div>
+            <div class="file-desc">Full pipeline — data, model, forecast, charts</div>
+          </div>
+          <div class="file-badge">Jupyter</div>
+        </div>
+        <div class="code-file">
+          <div class="file-icon" style="background:var(--accent);color:var(--white);font-family:'Syne',sans-serif;font-size:0.55rem;font-weight:700;">.html</div>
+          <div>
+            <div class="file-name">housing_trends.html</div>
+            <div class="file-desc">Interactive price trends per province</div>
+          </div>
+          <div class="file-badge">Plotly</div>
+        </div>
+        <div class="code-file">
+          <div class="file-icon" style="background:var(--accent);color:var(--white);font-family:'Syne',sans-serif;font-size:0.55rem;font-weight:700;">.html</div>
+          <div>
+            <div class="file-name">housing_forecast.html</div>
+            <div class="file-desc">Historical + forecast 2025–2027</div>
+          </div>
+          <div class="file-badge">Plotly</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="code-dots">
+          <div class="code-dot r"></div>
+          <div class="code-dot y"></div>
+          <div class="code-dot g"></div>
+        </div>
+        <span class="code-filename">dutch_housing_forecast.ipynb</span>
+      </div>
+      <div class="code-body">
+        <pre><span class="cm"># Feature engineering + model training</span>
+
+<span class="kw">import</span> cbsodata, pandas <span class="kw">as</span> pd
+<span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> GradientBoostingRegressor
+
+<span class="cm"># Pull live from CBS OData API</span>
+<span class="var">df</span> = pd.<span class="fn">DataFrame</span>(cbsodata.<span class="fn">get_data</span>(<span class="str">'83625NED'</span>))
+
+<span class="cm"># Create lag features per province</span>
+<span class="var">df</span>[<span class="str">'prijs_lag1'</span>] = <span class="var">df</span>.<span class="fn">groupby</span>(<span class="str">'regio'</span>)[<span class="str">'gem_prijs'</span>].<span class="fn">shift</span>(<span class="num">1</span>)
+<span class="var">df</span>[<span class="str">'yoy_groei'</span>]  = <span class="var">df</span>.<span class="fn">groupby</span>(<span class="str">'regio'</span>)[<span class="str">'gem_prijs'</span>].<span class="fn">pct_change</span>() * <span class="num">100</span>
+<span class="var">df</span>[<span class="str">'prijs_ma3'</span>]  = <span class="var">df</span>.<span class="fn">groupby</span>(<span class="str">'regio'</span>)[<span class="str">'gem_prijs'</span>].<span class="fn">transform</span>(
+    <span class="kw">lambda</span> x: x.<span class="fn">rolling</span>(<span class="num">3</span>, min_periods=<span class="num">1</span>).<span class="fn">mean</span>()
+)
+
+<span class="cm"># Time-based split: train 2015–2021, test 2022–2024</span>
+<span class="var">X_train</span> = <span class="var">df</span>[<span class="var">df</span>[<span class="str">'jaar'</span>] &lt;= <span class="num">2021</span>][features]
+<span class="var">X_test</span>  = <span class="var">df</span>[<span class="var">df</span>[<span class="str">'jaar'</span>] &gt;  <span class="num">2021</span>][features]
+
+<span class="cm"># Best model: Gradient Boosting (R² = 0.94)</span>
+<span class="var">model</span> = <span class="fn">GradientBoostingRegressor</span>(
+    n_estimators=<span class="num">200</span>, learning_rate=<span class="num">0.05</span>, random_state=<span class="num">42</span>
+)
+<span class="var">model</span>.<span class="fn">fit</span>(<span class="var">X_train</span>, <span class="var">y_train</span>)</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOOLS -->
+<section class="section-tools reveal">
+  <div class="section-header">
+    <div class="sh-left">
+      <span class="sh-tag">// 05 — stack</span>
+      <h2 class="sh-title">Tools &amp; <em>libraries</em></h2>
+    </div>
+  </div>
+  <div class="tools-row">
+    <div class="tool-pill"><div class="tool-dot"></div>Python 3.10</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Pandas</div>
+    <div class="tool-pill"><div class="tool-dot"></div>NumPy</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Scikit-learn</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Plotly</div>
+    <div class="tool-pill"><div class="tool-dot"></div>cbsodata</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Jupyter Notebook</div>
+    <div class="tool-pill"><div class="tool-dot"></div>CBS StatLine API</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Kadaster Open Data</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Gradient Boosting</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Random Forest</div>
+    <div class="tool-pill"><div class="tool-dot"></div>OData v3</div>
+  </div>
+</section>
+
+<!-- PREV / NEXT -->
+<div class="section-navfoot">
+  <a href="project-001.html" class="navfoot-prev">
+    <span class="navfoot-dir">← Previous project</span>
+    <span class="navfoot-label">001 — Rotterdam Logistics Monitor</span>
+    <span class="navfoot-sub">Python · Power BI · SQL · DFDS data</span>
+  </a>
+  <a href="project-003.html" class="navfoot-next" style="align-items:flex-end;text-align:right;">
+    <span class="navfoot-dir">Next project →</span>
+    <span class="navfoot-label">003 — Energy Consumption Optimizer</span>
+    <span class="navfoot-sub">Python · K-means · Streamlit · SME focus</span>
+  </a>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <span>© 2025 — Ishan Sewnandan · Rotterdam</span>
+  <span>Data Analyst · CBS Open Data · Project 002 / 005</span>
+</footer>
+
+<script>
+// Progress bar
+window.addEventListener('scroll', () => {
+  const el = document.getElementById('progress-bar');
+  const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
+  el.style.width = Math.min(pct, 100) + '%';
+}, {passive:true});
+
+// Scroll reveal
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      observer.unobserve(e.target);
+    }
+  });
+}, {threshold:0.12});
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Animate bars when in view
+const barObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.querySelectorAll('.bar-fill').forEach(bar => {
+        bar.style.width = bar.dataset.width;
+      });
+      barObserver.unobserve(e.target);
+    }
+  });
+}, {threshold:0.3});
+document.querySelectorAll('.bar-chart').forEach(el => barObserver.observe(el));
+
+// Stagger step reveals
+document.querySelectorAll('.step').forEach((el, i) => {
+  el.style.transitionDelay = (i * 0.08) + 's';
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(16px)';
+  el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+});
+const stepsObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.querySelectorAll('.step').forEach(step => {
+        step.style.opacity = '1';
+        step.style.transform = 'translateY(0)';
+      });
+    }
+  });
+}, {threshold:0.1});
+document.querySelectorAll('.steps-grid').forEach(el => stepsObserver.observe(el));
+</script>
+
+<script>
+const translations = [{"selector": ".hero-tag", "en": "Data Analysis · Predictive Modelling", "nl": "Data-analyse · Voorspellende modellering"}, {"selector": ".hero-title", "en": "Dutch Housing<br>Market <em>Forecast</em>", "nl": "Nederlandse woningmarkt<br><em>voorspelling</em>"}, {"selector": ".hero-desc", "en": "Regional price trend modelling using CBS & Kadaster open data. Regression analysis across all Dutch provinces to forecast housing prices through 2027.", "nl": "Regionale prijsmodellering op basis van CBS- en Kadaster open data. Regressieanalyse over alle Nederlandse provincies om woningprijzen tot en met 2027 te voorspellen."}, {"selector": ".meta-row:nth-of-type(1) span:first-child", "en": "Status", "nl": "Status"}, {"selector": ".meta-row:nth-of-type(1) strong", "en": "Completed · 2025", "nl": "Afgerond · 2025"}, {"selector": ".meta-row:nth-of-type(2) span:first-child", "en": "Data", "nl": "Data"}, {"selector": ".meta-row:nth-of-type(2) strong", "en": "CBS StatLine · Kadaster Open Data", "nl": "CBS StatLine · Kadaster Open Data"}, {"selector": ".meta-row:nth-of-type(3) span:first-child", "en": "Tools", "nl": "Tools"}, {"selector": ".meta-row:nth-of-type(4) span:first-child", "en": "Model R²", "nl": "Model R²"}, {"selector": ".section-aanpak .sh-tag", "en": "// 01 — approach", "nl": "// 01 — aanpak"}, {"selector": ".section-aanpak .sh-title", "en": "How the <em>model</em><br>was built", "nl": "Hoe het <em>model</em><br>is gebouwd"}, {"selector": ".section-aanpak .sh-desc", "en": "A four-stage pipeline from raw CBS open data to interactive provincial forecasts — built to be reproducible and extendable.", "nl": "Een vierstappen-pipeline van ruwe CBS open data naar interactieve provinciale voorspellingen — gebouwd om reproduceerbaar en uitbreidbaar te zijn."}, {"selector": ".step:nth-of-type(1) .step-title", "en": "Data Collection", "nl": "Dataverzameling"}, {"selector": ".step:nth-of-type(1) .step-body", "en": "Pulled housing price data directly from CBS StatLine via the OData API. Tables 83625NED (average sale prices per region) and 85773NED (price index 2020=100) covering 2015–2024.", "nl": "Woningprijsdata direct opgehaald uit CBS StatLine via de OData-API. Tabellen 83625NED (gemiddelde verkoopprijzen per regio) en 85773NED (prijsindex 2020=100) over 2015–2024."}, {"selector": ".step:nth-of-type(2) .step-title", "en": "Feature Engineering", "nl": "Feature engineering"}, {"selector": ".step:nth-of-type(2) .step-body", "en": "Created lag features (t-1, t-2), YoY growth rates, and 3-year rolling averages per province. Label-encoded regions and added polynomial year terms to capture non-linear trends.", "nl": "Lag-features gemaakt (t-1, t-2), YoY-groeipercentages en 3-jaars rollende gemiddelden per provincie. Regio’s gelabeld en polynomiale jaartermen toegevoegd om niet-lineaire trends te vangen."}, {"selector": ".step:nth-of-type(3) .step-title", "en": "Model Training", "nl": "Modeltraining"}, {"selector": ".step:nth-of-type(3) .step-body", "en": "Time-based split: trained on 2015–2021, tested on 2022–2024. Compared Linear Regression, Random Forest, and Gradient Boosting. Best model selected by R² score.", "nl": "Time-based split: getraind op 2015–2021, getest op 2022–2024. Linear Regression, Random Forest en Gradient Boosting vergeleken. Beste model geselecteerd op basis van R²-score."}, {"selector": ".step:nth-of-type(4) .step-title", "en": "Visualisation", "nl": "Visualisatie"}, {"selector": ".step:nth-of-type(4) .step-body", "en": "Interactive Plotly charts: price trends per province, % growth bar chart, actual vs predicted scatter, feature importance, and an iterative 2025–2027 forecast with rolling lag updates.", "nl": "Interactieve Plotly-grafieken: prijstrends per provincie, % groeibalken, actual vs predicted scatter, feature importance en een iteratieve voorspelling voor 2025–2027 met rollende lag-updates."}, {"selector": "section:nth-of-type(3) .sh-tag", "en": "// 02 — models", "nl": "// 02 — modellen"}, {"selector": "section:nth-of-type(3) .sh-title", "en": "Three <em>models</em>, one winner", "nl": "Drie <em>modellen</em>, één winnaar"}, {"selector": "section:nth-of-type(3) .sh-desc", "en": "All three models were evaluated on a time-based test set (2022–2024) to simulate real-world forecasting conditions.", "nl": "Alle drie de modellen zijn geëvalueerd op een time-based testset (2022–2024) om realistische forecast-omstandigheden te simuleren."}, {"selector": "section:nth-of-type(4) .sh-tag", "en": "// 03 — insights", "nl": "// 03 — inzichten"}, {"selector": "section:nth-of-type(4) .sh-title", "en": "Key <em>findings</em><br>from the data", "nl": "Belangrijkste <em>inzichten</em><br>uit de data"}, {"selector": "section:nth-of-type(4) .sh-desc", "en": "Four patterns stood out when analysing a decade of Dutch housing data across all twelve provinces.", "nl": "Vier patronen vielen op bij het analyseren van tien jaar Nederlandse woningdata over alle twaalf provincies."}, {"selector": "section:nth-of-type(5) .sh-tag", "en": "// 04 — code", "nl": "// 04 — code"}, {"selector": "section:nth-of-type(5) .sh-title", "en": "Built to be <em>reproduced</em>", "nl": "Gebouwd om te <em>reproduceren</em>"}, {"selector": ".code-info", "en": "The notebook is fully self-contained. Install the dependencies, run all cells, and two interactive HTML visualisations are generated automatically.", "nl": "De notebook is volledig self-contained. Installeer de dependencies, run alle cellen en twee interactieve HTML-visualisaties worden automatisch gegenereerd."}, {"selector": "section:nth-of-type(6) .sh-tag", "en": "// 05 — stack", "nl": "// 05 — stack"}, {"selector": "section:nth-of-type(6) .sh-title", "en": "Tools & <em>libraries</em>", "nl": "Tools & <em>bibliotheken</em>"}, {"selector": ".navfoot-prev .navfoot-dir", "en": "← Previous project", "nl": "← Vorig project"}, {"selector": ".navfoot-next .navfoot-dir", "en": "Next project →", "nl": "Volgend project →"}];
+function applyTranslations(lang) {
+  document.documentElement.lang = lang;
+  translations.forEach(item => {
+    document.querySelectorAll(item.selector).forEach(el => {
+      el.innerHTML = item[lang] ?? item.en;
+    });
+  });
+  const backText = document.getElementById('nav-back-text');
+  if (backText) backText.textContent = lang === 'nl' ? 'Terug naar portfolio' : 'Back to portfolio';
+  const enBtn = document.getElementById('btn-en');
+  const nlBtn = document.getElementById('btn-nl');
+  if (enBtn) enBtn.classList.toggle('active', lang === 'en');
+  if (nlBtn) nlBtn.classList.toggle('active', lang === 'nl');
+}
+function setLang(lang) {
+  localStorage.setItem('lang', lang);
+  applyTranslations(lang);
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const lang = localStorage.getItem('lang') || 'en';
+  applyTranslations(lang);
+});
+</script>
+
+</body>
+</html>

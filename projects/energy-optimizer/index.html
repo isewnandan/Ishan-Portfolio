@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>003 — Energy Consumption Optimizer · Ishan Sewnandan</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#F4F2EE;
+  --white:#FFFFFF;
+  --ink:#0D0D0D;
+  --ink-mid:#3A3A3A;
+  --ink-dim:#888;
+  --border:#E0DDD8;
+  --border-dk:#C8C4BE;
+  --accent:#5C8A3C;
+  --accent-lt:#EEF5E8;
+  --tag-bg:#EDEBE6;
+  --red:#EF4444;
+  --amber:#F59E0B;
+  --blue:#3B82F6;
+}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:'JetBrains Mono',monospace;font-weight:300;
+  overflow-x:hidden;cursor:crosshair;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:radial-gradient(circle,#C8C4BE 1px,transparent 1px);
+  background-size:36px 36px;opacity:0.22;pointer-events:none;z-index:0;
+}
+
+#progress-bar{position:fixed;top:0;left:0;height:2px;background:var(--accent);width:0%;z-index:9999;}
+
+/* NAV */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:18px 52px;
+  background:rgba(244,242,238,0.93);backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--border);
+}
+.nav-id{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.nav-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:blink 2.5s ease infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
+.nav-name{font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink);}
+.nav-back{
+  display:flex;align-items:center;gap:8px;font-size:0.62rem;letter-spacing:0.12em;
+  text-transform:uppercase;color:var(--ink-dim);text-decoration:none;
+  border:1px solid var(--border-dk);border-radius:2px;padding:5px 14px;transition:all 0.2s;
+}
+.nav-back:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-lt);}
+.nav-back svg{width:10px;height:10px;transition:transform 0.2s;}
+.nav-back:hover svg{transform:translateX(-3px);}
+.nav-right{display:flex;align-items:center;gap:14px;}
+.lang-toggle{display:flex;align-items:center;border:1px solid var(--border-dk);border-radius:4px;overflow:hidden;}
+.lang-btn{padding:5px 10px;background:none;border:none;cursor:pointer;color:var(--ink-dim);font-family:'JetBrains Mono',monospace;font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase;transition:all 0.2s;}
+.lang-btn.active{background:var(--ink);color:#fff;}
+.lang-sep{width:1px;height:20px;background:var(--border-dk);}
+
+/* HERO */
+.hero{
+  min-height:100vh;display:grid;grid-template-columns:1fr 1fr;
+  padding-top:90px;position:relative;z-index:1;
+}
+.hero-left{
+  padding:80px 52px 60px;
+  display:flex;flex-direction:column;justify-content:center;
+  border-right:1px solid var(--border);
+}
+.hero-tag{
+  font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;
+  color:var(--accent);margin-bottom:28px;
+  display:flex;align-items:center;gap:10px;
+}
+.hero-tag::before{content:'';display:block;width:32px;height:1px;background:var(--accent);}
+.hero-num{
+  font-family:'Instrument Serif',serif;font-size:clamp(6rem,12vw,11rem);
+  line-height:0.85;color:var(--ink);opacity:0.07;
+  position:absolute;top:90px;left:40px;pointer-events:none;z-index:0;
+}
+.hero-title{
+  font-family:'Syne',sans-serif;
+  font-size:clamp(2.4rem,4.5vw,4rem);font-weight:800;
+  line-height:1.06;letter-spacing:-0.02em;color:var(--ink);
+  position:relative;z-index:1;margin-bottom:28px;
+}
+.hero-title em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;color:var(--accent);}
+.hero-desc{font-size:0.78rem;line-height:1.85;color:var(--ink-mid);max-width:420px;margin-bottom:40px;}
+.hero-meta{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--border);padding-top:28px;}
+.meta-row{display:flex;align-items:center;gap:12px;font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-dim);}
+.meta-row strong{color:var(--ink);font-weight:500;}
+.meta-dot{width:4px;height:4px;border-radius:50%;background:var(--border-dk);}
+
+/* HERO RIGHT — animated cluster canvas */
+.hero-right{
+  display:flex;align-items:center;justify-content:center;
+  padding:80px 52px;background:var(--white);
+  border-left:1px solid var(--border);overflow:hidden;position:relative;
+}
+.cluster-vis{width:100%;max-width:480px;position:relative;z-index:1;}
+.cluster-label-top{
+  font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;
+  color:var(--ink-dim);margin-bottom:16px;
+  display:flex;justify-content:space-between;
+}
+.cluster-label-top span{color:var(--accent);}
+#cluster-canvas{display:block;width:100%;height:320px;border-radius:4px;}
+.cluster-legend{
+  display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;
+}
+.legend-item{
+  display:flex;align-items:center;gap:6px;
+  font-size:0.58rem;color:var(--ink-dim);
+}
+.legend-dot{width:8px;height:8px;border-radius:50%;}
+
+/* SECTIONS */
+section{position:relative;z-index:1;}
+
+.section-inner{padding:100px 52px;border-top:1px solid var(--border);}
+.section-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:64px;gap:40px;}
+.sh-tag{font-size:0.58rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:12px;}
+.sh-title{font-family:'Syne',sans-serif;font-size:clamp(1.6rem,3vw,2.8rem);font-weight:800;letter-spacing:-0.02em;line-height:1.1;}
+.sh-title em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;}
+.sh-desc{max-width:380px;font-size:0.72rem;line-height:1.8;color:var(--ink-mid);margin-top:0;}
+
+/* CLUSTER CARDS */
+.clusters-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border);}
+.cluster-card{
+  background:var(--bg);padding:40px 36px;
+  position:relative;overflow:hidden;transition:background 0.25s;
+}
+.cluster-card:hover{background:var(--white);}
+.cc-stripe{
+  position:absolute;top:0;left:0;width:4px;height:100%;
+}
+.cc-num{
+  font-family:'Instrument Serif',serif;font-style:italic;
+  font-size:3.5rem;color:var(--border-dk);
+  position:absolute;top:16px;right:20px;line-height:1;opacity:0.3;
+  pointer-events:none;
+}
+.cc-header{display:flex;align-items:center;gap:14px;margin-bottom:20px;}
+.cc-icon{width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;}
+.cc-title{font-family:'Syne',sans-serif;font-size:0.95rem;font-weight:700;}
+.cc-sub{font-size:0.62rem;color:var(--ink-dim);margin-top:2px;}
+.cc-metrics{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+.cc-metric-label{font-size:0.52rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:4px;}
+.cc-metric-val{font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:700;}
+.cc-body{font-size:0.65rem;line-height:1.75;color:var(--ink-mid);border-top:1px solid var(--border);padding-top:16px;}
+.cc-badge{
+  display:inline-block;font-size:0.52rem;letter-spacing:0.1em;padding:3px 9px;
+  border-radius:2px;margin-bottom:14px;font-weight:500;
+}
+
+/* PIPELINE STEPS */
+.pipeline{display:grid;grid-template-columns:repeat(5,1fr);gap:0;position:relative;}
+.pipeline::before{
+  content:'';position:absolute;top:28px;left:10%;right:10%;height:1px;
+  background:var(--border-dk);z-index:0;
+}
+.pipe-step{
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+  padding:0 12px;position:relative;z-index:1;text-align:center;
+}
+.pipe-circle{
+  width:56px;height:56px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  border:2px solid var(--border-dk);background:var(--bg);
+  font-size:1.2rem;transition:all 0.25s;flex-shrink:0;
+}
+.pipe-step:hover .pipe-circle{border-color:var(--accent);background:var(--accent-lt);}
+.pipe-title{font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;}
+.pipe-body{font-size:0.58rem;line-height:1.65;color:var(--ink-dim);}
+
+/* SAVINGS SECTION */
+.section-savings{background:var(--ink);color:var(--white);}
+.section-savings .sh-title{color:var(--white);}
+.section-savings .sh-tag{color:var(--accent);}
+.section-savings .sh-desc{color:rgba(255,255,255,0.5);}
+.savings-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:56px;align-items:start;}
+.savings-visual{}
+.savings-bars{display:flex;flex-direction:column;gap:16px;}
+.sbar-row{display:flex;flex-direction:column;gap:6px;}
+.sbar-top{display:flex;justify-content:space-between;font-size:0.62rem;}
+.sbar-label{color:rgba(255,255,255,0.6);}
+.sbar-val{color:var(--accent);font-weight:500;}
+.sbar-track{height:8px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;}
+.sbar-fill{height:100%;border-radius:4px;background:var(--accent);width:0%;transition:width 1.4s cubic-bezier(0.16,1,0.3,1);}
+.sbar-fill.amber{background:var(--amber);}
+.sbar-fill.red{background:var(--red);}
+.sbar-fill.blue{background:var(--blue);}
+
+.savings-info{display:flex;flex-direction:column;gap:1px;background:rgba(255,255,255,0.06);}
+.sinfo-row{
+  background:rgba(255,255,255,0.02);padding:24px 28px;
+  display:grid;grid-template-columns:36px 1fr;gap:18px;
+  transition:background 0.2s;
+}
+.sinfo-row:hover{background:rgba(255,255,255,0.05);}
+.sinfo-icon{font-size:1.2rem;}
+.sinfo-title{font-family:'Syne',sans-serif;font-size:0.82rem;font-weight:600;color:var(--white);margin-bottom:5px;}
+.sinfo-body{font-size:0.63rem;line-height:1.7;color:rgba(255,255,255,0.45);}
+
+/* CODE + STREAMLIT */
+.section-stack{padding:100px 52px;border-top:1px solid var(--border);}
+.stack-grid{display:grid;grid-template-columns:1fr 1.3fr;gap:48px;margin-top:56px;align-items:start;}
+.streamlit-preview{
+  background:#0D0D0D;border-radius:8px;overflow:hidden;
+}
+.st-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px;background:#1a1a1a;border-bottom:1px solid #2a2a2a;
+}
+.st-dots{display:flex;gap:5px;}
+.st-dot{width:9px;height:9px;border-radius:50%;}
+.st-url{font-size:0.55rem;letter-spacing:0.06em;color:rgba(255,255,255,0.25);font-family:'JetBrains Mono',monospace;}
+.st-body{padding:20px;}
+.st-title{font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:#fff;margin-bottom:4px;}
+.st-sub{font-size:0.55rem;color:rgba(255,255,255,0.35);margin-bottom:16px;}
+.st-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;}
+.st-metric{background:rgba(255,255,255,0.04);border-radius:4px;padding:10px 12px;}
+.st-metric-label{font-size:0.48rem;color:rgba(255,255,255,0.3);margin-bottom:4px;}
+.st-metric-val{font-family:'Syne',sans-serif;font-size:0.9rem;font-weight:700;color:#fff;}
+.st-chart{background:rgba(255,255,255,0.03);border-radius:4px;padding:14px;margin-bottom:10px;}
+.st-chart-label{font-size:0.5rem;color:rgba(255,255,255,0.25);margin-bottom:10px;}
+.st-bars{display:flex;align-items:flex-end;gap:4px;height:60px;}
+.st-bar-item{flex:1;border-radius:2px 2px 0 0;transition:height 0.5s ease;}
+.sidebar-pill{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 14px;border:1px solid var(--border-dk);
+  border-radius:100px;font-size:0.6rem;color:var(--ink-mid);
+  margin-bottom:8px;transition:all 0.2s;
+}
+.sidebar-pill:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-lt);}
+
+/* TOOLS */
+.tools-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:40px;}
+.tool-pill{
+  display:flex;align-items:center;gap:8px;padding:10px 18px;
+  border:1px solid var(--border-dk);border-radius:100px;
+  font-size:0.65rem;color:var(--ink-mid);transition:all 0.2s;
+}
+.tool-pill:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-lt);}
+.tool-dot{width:6px;height:6px;border-radius:50%;background:var(--border-dk);}
+.tool-pill:hover .tool-dot{background:var(--accent);}
+
+/* NAV FOOTER */
+.section-navfoot{border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;}
+.navfoot-prev,.navfoot-next{
+  padding:48px 52px;display:flex;flex-direction:column;gap:8px;
+  text-decoration:none;transition:background 0.2s;color:var(--ink);
+}
+.navfoot-prev{border-right:1px solid var(--border);}
+.navfoot-prev:hover,.navfoot-next:hover{background:var(--white);}
+.navfoot-dir{font-size:0.55rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-dim);}
+.navfoot-label{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;}
+.navfoot-sub{font-size:0.62rem;color:var(--ink-dim);}
+
+footer{
+  padding:32px 52px;border-top:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;
+  font-size:0.6rem;letter-spacing:0.08em;color:var(--ink-dim);
+  position:relative;z-index:1;
+}
+
+.reveal{opacity:0;transform:translateY(24px);transition:opacity 0.7s ease,transform 0.7s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+
+@media(max-width:1100px){
+  .clusters-grid{grid-template-columns:1fr;}
+  .pipeline{grid-template-columns:1fr 1fr;gap:28px;}
+  .pipeline::before{display:none;}
+  .savings-grid{grid-template-columns:1fr;}
+  .stack-grid{grid-template-columns:1fr;}
+}
+@media(max-width:768px){
+  nav{padding:14px 20px;}
+  .hero{grid-template-columns:1fr;}
+  .hero-right{display:none;}
+  .hero-left{padding:60px 20px 48px;}
+  .section-inner,.section-savings,.section-stack{padding:60px 20px;}
+  .section-header{flex-direction:column;}
+  .clusters-grid,.pipeline{grid-template-columns:1fr;}
+  .cc-num{font-size:2.5rem;opacity:0.2;}
+  .cluster-card{padding:32px 24px;}
+  .section-navfoot{grid-template-columns:1fr;}
+  .navfoot-prev{border-right:none;border-bottom:1px solid var(--border);}
+  .navfoot-prev,.navfoot-next{padding:32px 20px;}
+  footer{flex-direction:column;gap:12px;padding:24px 20px;}
+}
+</style>
+</head>
+<body>
+<div id="progress-bar"></div>
+
+<nav>
+  <a href="../../index.html" class="nav-id">
+    <div class="nav-dot"></div>
+    <span class="nav-name">Ishan Sewnandan</span>
+  </a>
+  <div class="nav-right">
+    <a href="../../index.html" class="nav-back">
+      <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L2 5l4 3"/></svg>
+      <span data-en="Back to portfolio" data-nl="Terug naar portfolio">Back to portfolio</span>
+    </a>
+    <div class="lang-toggle">
+      <button class="lang-btn active" id="btn-en" onclick="setLang('en')">EN</button>
+      <div class="lang-sep"></div>
+      <button class="lang-btn" id="btn-nl" onclick="setLang('nl')">NL</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-num">003</div>
+    <div class="hero-tag" data-en="Unsupervised Learning · Sustainability" data-nl="Unsupervised Learning · Duurzaamheid">Unsupervised Learning · Sustainability</div>
+    <h1 class="hero-title"><span data-en="Energy" data-nl="Energie">Energy</span><br><em>Consumption</em><br>Optimizer</h1>
+    <p class="hero-desc" data-en="K-means clustering on CBS open data to segment Dutch SMEs by energy profile — identifying waste patterns and quantifying savings potential per sector." data-nl="K-means clustering op CBS open data om Nederlandse MKB-bedrijven te segmenteren op energieprofiel — verspillingspatronen identificeren en besparingspotentieel per sector kwantificeren.">K-means clustering on CBS open data to segment Dutch SMEs by energy profile — identifying waste patterns and quantifying savings potential per sector.</p>
+    <div class="hero-meta">
+      <div class="meta-row">
+        <span data-en="Status" data-nl="Status">Status</span><div class="meta-dot"></div>
+        <strong data-en="Completed · 2026" data-nl="Afgerond · 2026">Completed · 2026</strong>
+      </div>
+      <div class="meta-row">
+        <span data-en="Data" data-nl="Data">Data</span><div class="meta-dot"></div>
+        <strong>CBS 84901NED · Energielevering bedrijven</strong>
+      </div>
+      <div class="meta-row">
+        <span data-en="Tools" data-nl="Tools">Tools</span><div class="meta-dot"></div>
+        <strong>Python · Scikit-learn · Plotly · Streamlit</strong>
+      </div>
+      <div class="meta-row">
+        <span data-en="Method" data-nl="Methode">Method</span><div class="meta-dot"></div>
+        <strong style="color:var(--accent);">K-means · Silhouette · PCA</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANIMATED CLUSTER CANVAS -->
+  <div class="hero-right">
+    <div class="cluster-vis">
+      <div class="cluster-label-top">
+        <span data-en="K-means clusters · SME NL" data-nl="K-means clusters · MKB NL">K-means clusters · MKB NL</span>
+        <span>k = 4 · PCA projection</span>
+      </div>
+      <canvas id="cluster-canvas"></canvas>
+      <div class="cluster-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#5C8A3C"></div><span data-en="Efficient (low consumption)" data-nl="Efficiënt (laag verbruik)">Efficiënt (laag verbruik)</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#F59E0B"></div><span data-en="Gas-intensive" data-nl="Gas-intensief">Gas-intensief</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3B82F6"></div><span data-en="Electricity-intensive" data-nl="Elektra-intensief">Elektra-intensief</span></div>
+        <div class="legend-item"><div class="legend-dot" style="background:#EF4444"></div><span data-en="High consumption" data-nl="Hoog verbruik">Hoog verbruik</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PIPELINE -->
+<section class="section-inner reveal">
+  <div class="section-header">
+    <div>
+      <span class="sh-tag" data-en="// 01 — pipeline" data-nl="// 01 — pijplijn">// 01 — pipeline</span>
+      <h2 class="sh-title"><span data-en="Five-step" data-nl="Vijfstaps">Five-step</span> <em><span data-en="analysis" data-nl="analyse">analysis</span></em><br><span data-en="pipeline" data-nl="pijplijn">pipeline</span></h2>
+    </div>
+    <p class="sh-desc" data-en="From raw CBS energy delivery data to actionable SME savings recommendations — fully automated end-to-end." data-nl="Van ruwe CBS-energieleveringsdata naar concrete MKB-besparingsadviezen — volledig geautomatiseerd van begin tot eind.">From raw CBS energy delivery data to actionable SME savings recommendations — fully automated end-to-end.</p>
+  </div>
+  <div class="pipeline">
+    <div class="pipe-step">
+      <div class="pipe-circle" data-done="1">⬇</div>
+      <div class="pipe-title">CBS API</div>
+      <p class="pipe-body" data-en="Live data pull via cbsodata from table 84901NED — gas &amp; electricity delivery per sector" data-nl="Live data ophalen via cbsodata uit tabel 84901NED — gas- &amp; elektriciteitslevering per sector">Live data pull via cbsodata from table 84901NED — gas & electricity delivery per sector</p>
+    </div>
+    <div class="pipe-step">
+      
+      <div class="pipe-title">Feature Eng.</div>
+      <p class="pipe-body" data-en="Per-address normalisation, kWh-equivalents, gas/electricity ratio per SBI sector" data-nl="Normalisatie per adres, kWh-equivalenten, gas/elektra-ratio per SBI-sector">Per-address normalisation, kWh-equivalents, gas/electricity ratio per SBI sector</p>
+    </div>
+    <div class="pipe-step">
+      
+      <div class="pipe-title">Elbow + Sil.</div>
+      <p class="pipe-body" data-en="Optimal k via elbow method and silhouette score — auto-selected per dataset run" data-nl="Optimale k via elbow-methode en silhouettescore — automatisch geselecteerd per dataset-run">Optimal k via elbow method and silhouette score — auto-selected per dataset run</p>
+    </div>
+    <div class="pipe-step">
+      
+      <div class="pipe-title">K-means</div>
+      <p class="pipe-body" data-en="StandardScaler + KMeans (n_init=20) on 4 features, PCA for 2D visualisation" data-nl="StandardScaler + KMeans (n_init=20) op 4 features, PCA voor 2D-visualisatie">StandardScaler + KMeans (n_init=20) on 4 features, PCA for 2D visualisation</p>
+    </div>
+    <div class="pipe-step">
+      
+      <div class="pipe-title" data-en="Savings" data-nl="Besparingen">Savings</div>
+      <p class="pipe-body" data-en="Benchmark vs lowest cluster · 2024 NL SME tariffs · per-address &amp; aggregate" data-nl="Benchmark vs laagste cluster · 2024 NL MKB-tarieven · per adres &amp; geaggregeerd">Benchmark vs lowest cluster · 2024 NL MKB tariffs · per-address & aggregate</p>
+    </div>
+  </div>
+</section>
+
+<!-- CLUSTER PROFILES -->
+<section class="section-inner reveal" style="padding-top:0;">
+  <div class="section-header">
+    <div>
+      <span class="sh-tag" data-en="// 02 — clusters" data-nl="// 02 — clusters">// 02 — clusters</span>
+      <h2 class="sh-title"><span data-en="Four energy" data-nl="Vier energie">Four energy</span> <em><span data-en="profiles" data-nl="profielen">profiles</span></em><br><span data-en="identified" data-nl="geïdentificeerd">identified</span></h2>
+    </div>
+    <p class="sh-desc" data-en="Each cluster represents a distinct SME energy consumption pattern with different reduction potential." data-nl="Elk cluster vertegenwoordigt een uniek MKB-energieverbruikspatroon met verschillend reductiepotentieel.">Each cluster represents a distinct SME energy consumption pattern with different reduction potential.</p>
+  </div>
+  <div class="clusters-grid">
+
+    <div class="cluster-card">
+      <div class="cc-stripe" style="background:#5C8A3C;"></div>
+      <div class="cc-num">01</div>
+      <div class="cc-header">
+        <div class="cc-icon" style="background:#EEF5E8;"></div>
+        <div>
+          <div class="cc-title" data-en="Efficient · Low consumption" data-nl="Efficiënt · Laag verbruik">Efficiënt · Laag verbruik</div>
+          <div class="cc-sub" data-en="Benchmark cluster · Best practice" data-nl="Benchmark cluster · Beste praktijk">Benchmark cluster · Beste praktijk</div>
+        </div>
+      </div>
+      <span class="cc-badge" style="background:#EEF5E8;color:#5C8A3C;" data-en="Benchmark" data-nl="Benchmark">Benchmark</span>
+      <div class="cc-metrics">
+        <div>
+          <div class="cc-metric-label" data-en="Avg. electricity" data-nl="Gem. elektra">Gem. elektra</div>
+          <div class="cc-metric-val">~18k kWh</div>
+        </div>
+        <div>
+          <div class="cc-metric-label" data-en="Avg. gas" data-nl="Gem. gas">Gem. gas</div>
+          <div class="cc-metric-val">~1.2k m³</div>
+        </div>
+      </div>
+      <p class="cc-body" data-en="Smallest businesses and office environments (SBI G, J, M). Low total consumption, low gas/electricity ratio. This cluster serves as the benchmark for calculating savings potential in other clusters." data-nl="Kleinste bedrijven en kantooromgevingen (SBI G, J, M). Laag totaalverbruik, lage gas/elektra-ratio. Dit cluster dient als benchmark voor het berekenen van besparingspotentieel in de andere clusters.">Kleinste bedrijven en kantooromgevingen (SBI G, J, M). Laag totaalverbruik, lage gas/elektra-ratio. Dit cluster dient als benchmark voor het berekenen van besparingspotentieel in de andere clusters.</p>
+    </div>
+
+    <div class="cluster-card">
+      <div class="cc-stripe" style="background:#F59E0B;"></div>
+      <div class="cc-num">02</div>
+      <div class="cc-header">
+        <div class="cc-icon" style="background:#FEF3C7;"></div>
+        <div>
+          <div class="cc-title" data-en="Gas-intensive · Heat consumption" data-nl="Gas-intensief · Warmteverbruik">Gas-intensief · Warmteverbruik</div>
+          <div class="cc-sub" data-en="High natural gas consumption · Heating profile" data-nl="Hoog aardgasverbruik · Verwarmingsprofiel">Hoog aardgasverbruik · Verwarmingsprofiel</div>
+        </div>
+      </div>
+      <span class="cc-badge" style="background:#FEF3C7;color:#92400E;" data-en="Moderate risk" data-nl="Matig risico">Matig risico</span>
+      <div class="cc-metrics">
+        <div>
+          <div class="cc-metric-label" data-en="Avg. electricity" data-nl="Gem. elektra">Gem. elektra</div>
+          <div class="cc-metric-val">~31k kWh</div>
+        </div>
+        <div>
+          <div class="cc-metric-label" data-en="Avg. gas" data-nl="Gem. gas">Gem. gas</div>
+          <div class="cc-metric-val">~8.4k m³</div>
+        </div>
+      </div>
+      <p class="cc-body" data-en="Hospitality, retail and wholesale, healthcare (SBI I, G, Q). High gas/electricity ratio indicates outdated heating systems. Large potential for heat pumps and insulation measures." data-nl="Horeca, detail- en groothandel, gezondheidszorg (SBI I, G, Q). Hoge gas/elektra-ratio wijst op verouderde verwarmingssystemen. Groot potentieel voor warmtepompen en isolatiemaatregelen.">Horeca, detail- en groothandel, gezondheidszorg (SBI I, G, Q). Hoge gas/elektra-ratio wijst op verouderde verwarmingssystemen. Groot potentieel voor warmtepompen en isolatiemaatregelen.</p>
+    </div>
+
+    <div class="cluster-card">
+      <div class="cc-stripe" style="background:#3B82F6;"></div>
+      <div class="cc-num">03</div>
+      <div class="cc-header">
+        <div class="cc-icon" style="background:#EFF6FF;"></div>
+        <div>
+          <div class="cc-title" data-en="Electricity-intensive · Process consumption" data-nl="Elektra-intensief · Procesverbruik">Elektra-intensief · Procesverbruik</div>
+          <div class="cc-sub" data-en="High electricity consumption · Equipment" data-nl="Hoog elektriciteitsverbruik · Apparatuur">Hoog elektriciteitsverbruik · Apparatuur</div>
+        </div>
+      </div>
+      <span class="cc-badge" style="background:#EFF6FF;color:#1E40AF;" data-en="Average risk" data-nl="Gemiddeld risico">Gemiddeld risico</span>
+      <div class="cc-metrics">
+        <div>
+          <div class="cc-metric-label" data-en="Avg. electricity" data-nl="Gem. elektra">Gem. elektra</div>
+          <div class="cc-metric-val">~94k kWh</div>
+        </div>
+        <div>
+          <div class="cc-metric-label" data-en="Avg. gas" data-nl="Gem. gas">Gem. gas</div>
+          <div class="cc-metric-val">~2.8k m³</div>
+        </div>
+      </div>
+      <p class="cc-body" data-en="ICT services, cold-chain transport, food retail (SBI J, H, G-special). Low gas/electricity ratio but high absolute electricity consumption. Potential in solar panels, LED lighting, energy management systems." data-nl="ICT-diensten, koeltransport, food retail (SBI J, H, G-speciaal). Lage gas/elektra-ratio maar hoog absoluut elektraverbruik. Potentieel in zonnepanelen, LED-verlichting, energiebeheer-systemen.">ICT-diensten, koeltransport, food retail (SBI J, H, G-speciaal). Lage gas/elektra-ratio maar hoog absoluut elektraverbruik. Potentieel in zonnepanelen, LED-verlichting, energiebeheer-systemen.</p>
+    </div>
+
+    <div class="cluster-card">
+      <div class="cc-stripe" style="background:#EF4444;"></div>
+      <div class="cc-num">04</div>
+      <div class="cc-header">
+        <div class="cc-icon" style="background:#FEF2F2;"></div>
+        <div>
+          <div class="cc-title" data-en="High consumption · Improvement potential" data-nl="Hoog verbruik · Verbeterpotentieel">Hoog verbruik · Verbeterpotentieel</div>
+          <div class="cc-sub" data-en="Above average on all metrics" data-nl="Bovengemiddeld op alle metrics">Bovengemiddeld op alle metrics</div>
+        </div>
+      </div>
+      <span class="cc-badge" style="background:#FEF2F2;color:#991B1B;" data-en="High risk" data-nl="Hoog risico">Hoog risico</span>
+      <div class="cc-metrics">
+        <div>
+          <div class="cc-metric-label" data-en="Avg. electricity" data-nl="Gem. elektra">Gem. elektra</div>
+          <div class="cc-metric-val">~187k kWh</div>
+        </div>
+        <div>
+          <div class="cc-metric-label" data-en="Avg. gas" data-nl="Gem. gas">Gem. gas</div>
+          <div class="cc-metric-val">~14.6k m³</div>
+        </div>
+      </div>
+      <p class="cc-body" data-en="Manufacturing SMEs, construction, transport (SBI C, F, H). Both electricity and gas significantly above benchmark. Largest savings potential — average €4,200–€6,800 per address per year when moving to benchmark level." data-nl="Productie-MKB, bouw, transport (SBI C, F, H). Zowel elektra als gas significant boven benchmark. Grootste besparingspotentieel — gemiddeld €4,200–€6,800 per adres per jaar bij overstap naar benchmark-niveau.">Productie-MKB, bouw, transport (SBI C, F, H). Zowel elektra als gas significant boven benchmark. Grootste besparingspotentieel — gemiddeld €4,200–€6,800 per adres per jaar bij overstap naar benchmark-niveau.</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- SAVINGS SECTION (dark) -->
+<section class="section-inner section-savings reveal">
+  <div class="section-header">
+    <div>
+      <span class="sh-tag" data-en="// 03 — impact" data-nl="// 03 — impact">// 03 — impact</span>
+      <h2 class="sh-title"><span data-en="Quantified" data-nl="Gekwantificeerd">Quantified</span> <em><span data-en="savings" data-nl="besparings">savings</span></em><br><span data-en="potential" data-nl="potentieel">potential</span></h2>
+    </div>
+    <p class="sh-desc" data-en="Based on 2024 Dutch SME energy tariffs (€0.28/kWh · €1.05/m³), benchmarked against the most efficient cluster." data-nl="Gebaseerd op 2024 Nederlandse MKB-energietarieven (€0,28/kWh · €1,05/m³), gebenchmarkt tegen het meest efficiënte cluster.">Based on 2024 Dutch SME energy tariffs (€0.28/kWh · €1.05/m³), benchmarked against the most efficient cluster.</p>
+  </div>
+
+  <div class="savings-grid">
+    <div class="savings-bars">
+      <div class="sbar-row">
+        <div class="sbar-top">
+          <span class="sbar-label" data-en="Cluster 04 · High consumption" data-nl="Cluster 04 · Hoog verbruik">Cluster 04 · Hoog verbruik</span>
+          <span class="sbar-val">€5,600 / adres / jaar</span>
+        </div>
+        <div class="sbar-track"><div class="sbar-fill red" data-width="100%"></div></div>
+      </div>
+      <div class="sbar-row">
+        <div class="sbar-top">
+          <span class="sbar-label" data-en="Cluster 02 · Gas-intensive" data-nl="Cluster 02 · Gas-intensief">Cluster 02 · Gas-intensief</span>
+          <span class="sbar-val">€3,100 / adres / jaar</span>
+        </div>
+        <div class="sbar-track"><div class="sbar-fill amber" data-width="55%"></div></div>
+      </div>
+      <div class="sbar-row">
+        <div class="sbar-top">
+          <span class="sbar-label" data-en="Cluster 03 · Electricity-intensive" data-nl="Cluster 03 · Elektra-intensief">Cluster 03 · Elektra-intensief</span>
+          <span class="sbar-val">€2,100 / adres / jaar</span>
+        </div>
+        <div class="sbar-track"><div class="sbar-fill blue" data-width="37%"></div></div>
+      </div>
+      <div class="sbar-row">
+        <div class="sbar-top">
+          <span class="sbar-label" data-en="Cluster 01 · Efficient (benchmark)" data-nl="Cluster 01 · Efficiënt (benchmark)">Cluster 01 · Efficiënt (benchmark)</span>
+          <span class="sbar-val" data-en="€0 — reference" data-nl="€0 — referentie">€0 — referentie</span>
+        </div>
+        <div class="sbar-track"><div class="sbar-fill" data-width="0%"></div></div>
+      </div>
+
+      <div style="margin-top:32px;padding-top:24px;border-top:1px solid rgba(255,255,255,0.08);">
+        <div style="font-size:0.58rem;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:10px;" data-en="Total savings potential" data-nl="Totaal besparingspotentieel">Totaal besparingspotentieel</div>
+        <div style="font-family:'Syne',sans-serif;font-size:2.8rem;font-weight:800;color:var(--accent);line-height:1;">€142M+</div>
+        <div style="font-size:0.65rem;color:rgba(255,255,255,0.35);margin-top:6px;" data-en="estimated annual savings · all SME addresses in high-risk clusters" data-nl="geschatte jaarlijkse besparing · alle MKB-adressen in hoog-risico clusters">geschatte jaarlijkse besparing · alle MKB-adressen in hoog-risico clusters</div>
+      </div>
+    </div>
+
+    <div class="savings-info">
+      <div class="sinfo-row">
+        <div class="sinfo-icon"></div>
+        <div>
+          <div class="sinfo-title" data-en="Gas is the largest cost driver" data-nl="Gas is de grootste kostenpost">Gas is de grootste kostenpost</div>
+          <p class="sinfo-body" data-en="In clusters 2 and 4, natural gas accounts for 60–70% of total energy costs. Switching to heat pumps or ATES systems offers the highest ROI for SMEs." data-nl="In clusters 2 en 4 verklaart aardgasverbruik 60–70% van de totale energiekosten. Overstap op warmtepompen of WKO-systemen heeft de hoogste ROI voor MKB.">In clusters 2 en 4 verklaart aardgasverbruik 60–70% van de totale energiekosten. Overstap op warmtepompen of WKO-systemen heeft de hoogste ROI voor MKB.</p>
+        </div>
+      </div>
+      <div class="sinfo-row">
+        <div class="sinfo-icon"></div>
+        <div>
+          <div class="sinfo-title" data-en="Electricity cluster benefits from solar" data-nl="Elektra-cluster profiteert van solar">Elektra-cluster profiteert van solar</div>
+          <p class="sinfo-body" data-en="Cluster 3 (electricity-intensive) shows an average 340+ solar days potential. Solar panel payback period for SMEs: 4–6 years at current grid consumption." data-nl="Cluster 3 (elektra-intensief) toont gemiddeld 340+ zonnedagen potentieel. Terugverdientijd zonnepanelen MKB: 4–6 jaar bij huidig netverbruik.">Cluster 3 (elektra-intensief) toont gemiddeld 340+ zonnedagen potentieel. Terugverdientijd zonnepanelen MKB: 4–6 jaar bij huidig netverbruik.</p>
+        </div>
+      </div>
+      <div class="sinfo-row">
+        <div class="sinfo-icon"></div>
+        <div>
+          <div class="sinfo-title" data-en="SBI sector strongly predicts cluster" data-nl="SBI-sector voorspelt cluster sterk">SBI-sector voorspelt cluster sterk</div>
+          <p class="sinfo-body" data-en="Industry sector (SBI code) is the strongest cluster predictor. Hospitality and manufacturing SMEs consistently fall into high-consumption clusters — regardless of company size." data-nl="Bedrijfstak (SBI-code) is de sterkste clusterpredictor. Horeca en productie-MKB zitten consistent in hoge-verbruiksclusters — ongeacht bedrijfsgrootte.">Bedrijfstak (SBI-code) is de sterkste clusterpredictor. Horeca en productie-MKB zitten consistent in hoge-verbruiksclusters — ongeacht bedrijfsgrootte.</p>
+        </div>
+      </div>
+      <div class="sinfo-row">
+        <div class="sinfo-icon"></div>
+        <div>
+          <div class="sinfo-title" data-en="Benchmarking works as an intervention tool" data-nl="Benchmarking werkt als interventietool">Benchmarking werkt als interventietool</div>
+          <p class="sinfo-body" data-en="By showing businesses their cluster placement relative to the sector benchmark, a concrete, personalised savings target is created — more effective than generic advice." data-nl="Door bedrijven hun clusterplaatsing te tonen t.o.v. sector-benchmark ontstaat een concrete, gepersonaliseerde besparingsdoelstelling — effectiever dan generieke adviezen.">Door bedrijven hun clusterplaatsing te tonen t.o.v. sector-benchmark ontstaat een concrete, gepersonaliseerde besparingsdoelstelling — effectiever dan generieke adviezen.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STACK + STREAMLIT -->
+<section class="section-stack reveal">
+  <div class="section-header">
+    <div>
+      <span class="sh-tag" data-en="// 04 — output" data-nl="// 04 — output">// 04 — output</span>
+      <h2 class="sh-title"><span data-en="Interactive" data-nl="Interactief">Interactive</span> <em>Streamlit</em><br>dashboard</h2>
+    </div>
+    <p class="sh-desc" data-en="The notebook generates a fully interactive Streamlit app — adjustable k and energy prices, live CBS data, cluster drill-down per sector." data-nl="Het notebook genereert een volledig interactieve Streamlit-app — instelbare k en energieprijzen, live CBS-data, cluster-drill-down per sector.">The notebook generates a fully interactive Streamlit app — adjustable k and energy prices, live CBS data, cluster drill-down per sector.</p>
+  </div>
+
+  <div class="stack-grid">
+    <div>
+      <p style="font-size:0.72rem;line-height:1.85;color:var(--ink-mid);margin-bottom:28px;">
+        Run the notebook once to generate <code style="background:var(--tag-bg);padding:2px 6px;border-radius:2px;">app.py</code>, then launch the Streamlit dashboard locally. Adjust k-clusters and energy prices in the sidebar — all charts update live.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:28px;">
+        <div class="sidebar-pill" data-en="k-slider (2–8 clusters)" data-nl="k-slider (2–8 clusters)"> k-slider (2–8 clusters)</div>
+        <div class="sidebar-pill" data-en="Adjustable energy tariffs" data-nl="Instelbare energietarieven"> Adjustable energy tariffs</div>
+        <div class="sidebar-pill" data-en="Live CBS data via API" data-nl="Live CBS data via API"> Live CBS data via API</div>
+        <div class="sidebar-pill" data-en="Sector drill-down filter" data-nl="Sector drill-down filter"> Sector drill-down filter</div>
+      </div>
+      <div style="background:var(--ink);border-radius:6px;padding:16px 18px;font-size:0.62rem;color:rgba(255,255,255,0.6);">
+        <div style="color:rgba(255,255,255,0.3);margin-bottom:8px;font-size:0.55rem;letter-spacing:0.1em;">TERMINAL</div>
+        <div><span style="color:#5C8A3C;">pip install</span> cbsodata scikit-learn plotly streamlit</div>
+        <div style="margin-top:4px;"><span style="color:#5C8A3C;">streamlit run</span> app.py</div>
+      </div>
+    </div>
+
+    <!-- Streamlit preview mockup -->
+    <div class="streamlit-preview">
+      <div class="st-bar">
+        <div class="st-dots">
+          <div class="st-dot" style="background:#FF5F56;"></div>
+          <div class="st-dot" style="background:#FFBD2E;"></div>
+          <div class="st-dot" style="background:#27C93F;"></div>
+        </div>
+        <span class="st-url">localhost:8501 · Energy Optimizer MKB</span>
+      </div>
+      <div class="st-body">
+        <div class="st-title"> Energy Consumption Optimizer</div>
+        <div class="st-sub" data-en="SME Netherlands · Detect consumption profiles &amp; calculate savings" data-nl="MKB Nederland · Verbruiksprofielen detecteren &amp; besparingen berekenen">MKB Nederland · Verbruiksprofielen detecteren & besparingen berekenen</div>
+        <div class="st-metrics">
+          <div class="st-metric"><div class="st-metric-label" data-en="SME addresses" data-nl="MKB-adressen">MKB-adressen</div><div class="st-metric-val">48,240</div></div>
+          <div class="st-metric"><div class="st-metric-label">Clusters</div><div class="st-metric-val">4</div></div>
+          <div class="st-metric"><div class="st-metric-label">Gem. elektra</div><div class="st-metric-val">62k kWh</div></div>
+          <div class="st-metric"><div class="st-metric-label">Gem. gas</div><div class="st-metric-val">6.8k m³</div></div>
+        </div>
+        <div class="st-chart">
+          <div class="st-chart-label" data-en="Savings potential per cluster (€/address)" data-nl="Besparingspotentieel per cluster (€/adres)">Besparingspotentieel per cluster (€/adres)</div>
+          <div class="st-bars" id="st-bars">
+            <div class="st-bar-item" style="background:#EF4444;height:90%;"></div>
+            <div class="st-bar-item" style="background:#F59E0B;height:55%;"></div>
+            <div class="st-bar-item" style="background:#3B82F6;height:37%;"></div>
+            <div class="st-bar-item" style="background:#5C8A3C;height:4%;"></div>
+          </div>
+        </div>
+        <div style="font-size:0.48rem;color:rgba(255,255,255,0.2);">Data: CBS StatLine · 84901NED · Ishan Sewnandan · Portfolio 003</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TOOLS -->
+<section class="section-inner reveal" style="padding-top:40px;padding-bottom:80px;">
+  <div class="section-header" style="margin-bottom:0;">
+    <div>
+      <span class="sh-tag" data-en="// 05 — stack" data-nl="// 05 — stack">// 05 — stack</span>
+      <h2 class="sh-title">Tools &amp; <em><span data-en="libraries" data-nl="bibliotheken">libraries</span></em></h2>
+    </div>
+  </div>
+  <div class="tools-row">
+    <div class="tool-pill"><div class="tool-dot"></div>Python 3.10</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Scikit-learn</div>
+    <div class="tool-pill"><div class="tool-dot"></div>K-means Clustering</div>
+    <div class="tool-pill"><div class="tool-dot"></div>PCA</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Silhouette Score</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Pandas</div>
+    <div class="tool-pill"><div class="tool-dot"></div>NumPy</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Plotly</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Streamlit</div>
+    <div class="tool-pill"><div class="tool-dot"></div>cbsodata</div>
+    <div class="tool-pill"><div class="tool-dot"></div>CBS 84901NED</div>
+    <div class="tool-pill"><div class="tool-dot"></div>StandardScaler</div>
+  </div>
+</section>
+
+<!-- NAV FOOTER -->
+<div class="section-navfoot">
+  <a href="../housing-forecast/index.html" class="navfoot-prev">
+    <span class="navfoot-dir" data-en="← Previous project" data-nl="← Vorig project">← Previous project</span>
+    <span class="navfoot-label">002 — Dutch Housing Market Forecast</span>
+    <span class="navfoot-sub">Python · Scikit-learn · CBS · Regression</span>
+  </a>
+  <a href="../churn-prediction/index.html" class="navfoot-next" style="align-items:flex-end;text-align:right;">
+    <span class="navfoot-dir" data-en="Next project →" data-nl="Volgend project →">Next project →</span>
+    <span class="navfoot-label">004 — E-commerce Churn Prediction</span>
+    <span class="navfoot-sub">Python · XGBoost · Excel · Classification</span>
+  </a>
+</div>
+
+<footer>
+  <span data-en="© 2026 · Ishan Sewnandan · Rotterdam" data-nl="© 2026 · Ishan Sewnandan · Rotterdam">© 2026 · Ishan Sewnandan · Rotterdam</span>
+  <span data-en="Data Analyst · CBS Open Data · Project 003 / 005" data-nl="Data Analist · CBS Open Data · Project 003 / 005">Data Analyst · CBS Open Data · Project 003 / 005</span>
+</footer>
+
+<script>
+// Language toggle
+let currentLang = 'en';
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('[data-en]').forEach(el => {
+    const val = el.getAttribute('data-' + lang);
+    if (val !== null) el.innerHTML = val;
+  });
+  document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+  document.getElementById('btn-nl').classList.toggle('active', lang === 'nl');
+}
+
+// Progress bar
+window.addEventListener('scroll', () => {
+  const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
+  document.getElementById('progress-bar').style.width = Math.min(pct,100) + '%';
+},{passive:true});
+
+// Scroll reveal
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting){e.target.classList.add('visible');observer.unobserve(e.target);}});
+},{threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Animate savings bars when visible
+const barObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.sbar-fill').forEach(b => { b.style.width = b.dataset.width; });
+      barObs.unobserve(e.target);
+    }
+  });
+},{threshold:0.3});
+document.querySelectorAll('.savings-bars').forEach(el => barObs.observe(el));
+
+// Stagger pipeline steps
+document.querySelectorAll('.pipe-step').forEach((el,i) => {
+  el.style.opacity='0'; el.style.transform='translateY(20px)';
+  el.style.transition=`opacity 0.5s ease ${i*0.1}s, transform 0.5s ease ${i*0.1}s`;
+});
+const pipeObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.pipe-step').forEach(s => { s.style.opacity='1'; s.style.transform='translateY(0)'; });
+    }
+  });
+},{threshold:0.2});
+document.querySelectorAll('.pipeline').forEach(el => pipeObs.observe(el));
+
+// ── Animated K-means cluster canvas ──────────────────────────────────────────
+(function(){
+  const canvas = document.getElementById('cluster-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  const COLORS = ['#5C8A3C','#F59E0B','#3B82F6','#EF4444'];
+  const CENTERS = [{x:0.28,y:0.35},{x:0.72,y:0.28},{x:0.32,y:0.70},{x:0.72,y:0.72}];
+  const N = 120;
+
+  let W, H, pts;
+
+  function resize(){
+    const rect = canvas.parentElement.getBoundingClientRect();
+    W = canvas.width  = rect.width  || 480;
+    H = canvas.height = 320;
+  }
+
+  function mkPts(){
+    pts = [];
+    CENTERS.forEach((c,ci) => {
+      const n = ci===3 ? 18 : ci===0 ? 38 : 32;
+      for(let i=0;i<n;i++){
+        const angle = Math.random()*Math.PI*2;
+        const r = (Math.random()**0.6) * (ci===3 ? 0.16 : 0.18);
+        pts.push({
+          x: c.x + Math.cos(angle)*r,
+          y: c.y + Math.sin(angle)*r,
+          cluster: ci,
+          vx:(Math.random()-0.5)*0.0003,
+          vy:(Math.random()-0.5)*0.0003,
+          size: 2.5 + Math.random()*3.5
+        });
+      }
+    });
+  }
+
+  resize();
+  mkPts();
+  window.addEventListener('resize', ()=>{ resize(); });
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+
+    // Draw soft cluster halos
+    CENTERS.forEach((c,ci) => {
+      const grd = ctx.createRadialGradient(c.x*W,c.y*H,0,c.x*W,c.y*H,W*0.18);
+      grd.addColorStop(0, COLORS[ci]+'28');
+      grd.addColorStop(1, COLORS[ci]+'00');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(c.x*W, c.y*H, W*0.18, 0, Math.PI*2);
+      ctx.fill();
+    });
+
+    // Draw connections between nearby same-cluster points
+    for(let i=0;i<pts.length;i++){
+      for(let j=i+1;j<pts.length;j++){
+        if(pts[i].cluster !== pts[j].cluster) continue;
+        const dx=(pts[i].x-pts[j].x)*W, dy=(pts[i].y-pts[j].y)*H;
+        const dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist>60) continue;
+        ctx.beginPath();
+        ctx.strokeStyle = COLORS[pts[i].cluster] + Math.round((1-dist/60)*60).toString(16).padStart(2,'0');
+        ctx.lineWidth=0.6;
+        ctx.moveTo(pts[i].x*W, pts[i].y*H);
+        ctx.lineTo(pts[j].x*W, pts[j].y*H);
+        ctx.stroke();
+      }
+    }
+
+    // Draw points
+    pts.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x*W, p.y*H, p.size, 0, Math.PI*2);
+      ctx.fillStyle = COLORS[p.cluster] + 'CC';
+      ctx.fill();
+      ctx.strokeStyle = COLORS[p.cluster];
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+    });
+
+    // Draw centroids
+    CENTERS.forEach((c,ci) => {
+      ctx.beginPath();
+      const s=9;
+      ctx.moveTo(c.x*W, c.y*H-s);
+      ctx.lineTo(c.x*W+s, c.y*H+s);
+      ctx.lineTo(c.x*W-s, c.y*H+s);
+      ctx.closePath();
+      ctx.fillStyle = COLORS[ci];
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth=1.5;
+      ctx.stroke();
+    });
+
+    // Animate points with gentle drift
+    pts.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      const c = CENTERS[p.cluster];
+      p.x += (c.x - p.x) * 0.002;
+      p.y += (c.y - p.y) * 0.002;
+    });
+
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>005 — Labour Market Insights NL · Ishan Sewnandan</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#F4F2EE; --white:#FFFFFF; --ink:#0D0D0D; --ink-mid:#3A3A3A;
+  --ink-dim:#888; --border:#E0DDD8; --border-dk:#C8C4BE;
+  --accent:#5C8A3C; --accent-lt:#EEF5E8; --tag-bg:#EDEBE6;
+  --red:#EF4444; --amber:#F59E0B; --blue:#3B82F6;
+}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--ink);font-family:'JetBrains Mono',monospace;font-weight:300;overflow-x:hidden;cursor:crosshair;}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,#C8C4BE 1px,transparent 1px);background-size:36px 36px;opacity:0.22;pointer-events:none;z-index:0;}
+#progress-bar{position:fixed;top:0;left:0;height:2px;background:var(--accent);width:0%;z-index:9999;}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:18px 52px;background:rgba(244,242,238,0.93);backdrop-filter:blur(14px);border-bottom:1px solid var(--border);}
+.nav-id{display:flex;align-items:center;gap:10px;text-decoration:none;}
+.nav-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:blink 2.5s ease infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
+.nav-name{font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink);}
+.nav-back{display:flex;align-items:center;gap:8px;font-size:0.62rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-dim);text-decoration:none;border:1px solid var(--border-dk);border-radius:2px;padding:5px 14px;transition:all 0.2s;}
+.nav-back:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-lt);}
+.nav-back svg{width:10px;height:10px;transition:transform 0.2s;}
+.nav-back:hover svg{transform:translateX(-3px);}
+
+/* HERO */
+.hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;padding-top:90px;position:relative;z-index:1;}
+.hero-left{padding:80px 52px 60px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--border);}
+.hero-tag{font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);margin-bottom:28px;display:flex;align-items:center;gap:10px;}
+.hero-tag::before{content:'';display:block;width:32px;height:1px;background:var(--accent);}
+.hero-num{font-family:'Instrument Serif',serif;font-size:clamp(6rem,12vw,11rem);line-height:0.85;color:var(--ink);opacity:0.07;position:absolute;top:90px;left:40px;pointer-events:none;z-index:0;}
+.hero-title{font-family:'Syne',sans-serif;font-size:clamp(2.2rem,4vw,3.8rem);font-weight:800;line-height:1.06;letter-spacing:-0.02em;color:var(--ink);position:relative;z-index:1;margin-bottom:28px;}
+.hero-title em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;color:var(--accent);}
+.hero-desc{font-size:0.78rem;line-height:1.85;color:var(--ink-mid);max-width:420px;margin-bottom:40px;}
+.hero-meta{display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--border);padding-top:28px;}
+.meta-row{display:flex;align-items:center;gap:12px;font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-dim);}
+.meta-row strong{color:var(--ink);font-weight:500;}
+.meta-dot{width:4px;height:4px;border-radius:50%;background:var(--border-dk);}
+
+/* HERO RIGHT — skill gap scatter */
+.hero-right{display:flex;align-items:center;justify-content:center;padding:60px 48px;background:var(--white);border-left:1px solid var(--border);overflow:hidden;position:relative;}
+.scatter-wrap{width:100%;max-width:460px;}
+.scatter-label{font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-dim);margin-bottom:14px;display:flex;justify-content:space-between;}
+.scatter-label span{color:var(--accent);}
+#scatter-canvas{display:block;width:100%;height:300px;}
+.scatter-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
+.scatter-legend-item{display:flex;align-items:center;gap:5px;font-size:0.55rem;color:var(--ink-dim);}
+.scatter-legend-dot{width:8px;height:8px;border-radius:50%;}
+
+/* SECTIONS */
+section{position:relative;z-index:1;}
+.sec{padding:100px 52px;border-top:1px solid var(--border);}
+.sec-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:64px;gap:40px;}
+.sh-tag{font-size:0.58rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:12px;}
+.sh-title{font-family:'Syne',sans-serif;font-size:clamp(1.6rem,3vw,2.8rem);font-weight:800;letter-spacing:-0.02em;line-height:1.1;}
+.sh-title em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;}
+.sh-desc{max-width:380px;font-size:0.72rem;line-height:1.8;color:var(--ink-mid);}
+
+/* SPANNING SECTION */
+.spanning-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:start;}
+.spanning-bars{display:flex;flex-direction:column;gap:12px;}
+.sbar{display:flex;flex-direction:column;gap:5px;}
+.sbar-top{display:flex;justify-content:space-between;align-items:center;}
+.sbar-beroep{font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:600;}
+.sbar-val{font-size:0.6rem;color:var(--ink-dim);}
+.sbar-track{height:12px;background:var(--tag-bg);border-radius:6px;overflow:hidden;}
+.sbar-fill{height:100%;border-radius:6px;width:0%;transition:width 1.3s cubic-bezier(0.16,1,0.3,1);}
+.krapte-badge{font-size:0.5rem;letter-spacing:0.08em;padding:2px 7px;border-radius:2px;margin-left:8px;}
+
+/* SKILL GAP TABLE */
+.skill-table{width:100%;border-collapse:collapse;font-size:0.65rem;}
+.skill-table th{text-align:left;padding:10px 14px;font-size:0.52rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-dim);border-bottom:2px solid var(--border-dk);}
+.skill-table td{padding:11px 14px;border-bottom:1px solid var(--border);}
+.skill-table tr:hover td{background:var(--white);}
+.skill-name{font-family:'Syne',sans-serif;font-weight:600;font-size:0.72rem;}
+.gap-bar-wrap{width:80px;}
+.gap-bar-track{height:6px;background:var(--tag-bg);border-radius:3px;overflow:hidden;}
+.gap-bar-fill{height:100%;border-radius:3px;}
+.status-badge{font-size:0.52rem;padding:2px 7px;border-radius:2px;white-space:nowrap;}
+
+/* INSIGHTS (dark) */
+.sec-dark{background:var(--ink);color:var(--white);}
+.sec-dark .sh-title{color:var(--white);}
+.sec-dark .sh-tag{color:var(--accent);}
+.sec-dark .sh-desc{color:rgba(255,255,255,0.45);}
+.insights-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgba(255,255,255,0.08);margin-top:56px;}
+.insight-card{background:var(--ink);padding:36px 30px;transition:background 0.2s;border-top:3px solid transparent;}
+.insight-card:hover{background:#181818;}
+.insight-card.red{border-top-color:var(--red);}
+.insight-card.amber{border-top-color:var(--amber);}
+.insight-card.green{border-top-color:var(--accent);}
+.ic-icon{font-size:1.8rem;margin-bottom:18px;display:block;}
+.ic-stat{font-family:'Syne',sans-serif;font-size:2.2rem;font-weight:800;color:var(--white);line-height:1;margin-bottom:6px;}
+.ic-stat.red{color:var(--red);}
+.ic-stat.green{color:var(--accent);}
+.ic-stat.amber{color:var(--amber);}
+.ic-label{font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:14px;}
+.ic-body{font-size:0.63rem;line-height:1.75;color:rgba(255,255,255,0.45);}
+
+/* OUTPUTS */
+.outputs-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--border);}
+.output-card{background:var(--bg);padding:28px 22px;transition:background 0.2s;position:relative;}
+.output-card:hover{background:var(--white);}
+.oc-icon{font-size:1.5rem;margin-bottom:12px;display:block;}
+.oc-name{font-family:'Syne',sans-serif;font-size:0.78rem;font-weight:700;margin-bottom:6px;}
+.oc-desc{font-size:0.6rem;line-height:1.65;color:var(--ink-mid);}
+.oc-badge{position:absolute;top:14px;right:14px;font-size:0.48rem;letter-spacing:0.08em;padding:2px 6px;background:var(--tag-bg);border-radius:2px;color:var(--ink-mid);}
+
+/* TOOLS */
+.tools-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:40px;}
+.tool-pill{display:flex;align-items:center;gap:8px;padding:10px 18px;border:1px solid var(--border-dk);border-radius:100px;font-size:0.65rem;color:var(--ink-mid);transition:all 0.2s;}
+.tool-pill:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-lt);}
+.tool-dot{width:6px;height:6px;border-radius:50%;background:var(--border-dk);}
+.tool-pill:hover .tool-dot{background:var(--accent);}
+
+/* FINAL CTA */
+.sec-cta{background:var(--ink);color:var(--white);text-align:center;}
+.cta-inner{max-width:600px;margin:0 auto;padding:100px 52px;}
+.cta-tag{font-size:0.6rem;letter-spacing:0.18em;text-transform:uppercase;color:var(--accent);margin-bottom:20px;}
+.cta-title{font-family:'Syne',sans-serif;font-size:clamp(2rem,4vw,3.5rem);font-weight:800;line-height:1.1;color:var(--white);margin-bottom:20px;}
+.cta-title em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;color:var(--accent);}
+.cta-desc{font-size:0.75rem;line-height:1.8;color:rgba(255,255,255,0.45);margin-bottom:40px;}
+.cta-buttons{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;}
+.cta-btn{padding:13px 28px;font-family:'Syne',sans-serif;font-size:0.72rem;font-weight:700;letter-spacing:0.06em;text-decoration:none;border-radius:3px;transition:all 0.2s;}
+.cta-btn.primary{background:var(--accent);color:var(--white);}
+.cta-btn.primary:hover{background:#4a7231;}
+.cta-btn.ghost{border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.6);}
+.cta-btn.ghost:hover{border-color:var(--accent);color:var(--accent);}
+
+/* NAV FOOTER */
+.sec-navfoot{border-top:1px solid var(--border);display:grid;grid-template-columns:1fr 1fr;}
+.nf-prev,.nf-next{padding:48px 52px;display:flex;flex-direction:column;gap:8px;text-decoration:none;transition:background 0.2s;color:var(--ink);}
+.nf-prev{border-right:1px solid var(--border);}
+.nf-prev:hover,.nf-next:hover{background:var(--white);}
+.nf-dir{font-size:0.55rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-dim);}
+.nf-label{font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;}
+.nf-sub{font-size:0.62rem;color:var(--ink-dim);}
+
+footer{padding:32px 52px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;font-size:0.6rem;letter-spacing:0.08em;color:var(--ink-dim);position:relative;z-index:1;}
+
+.reveal{opacity:0;transform:translateY(24px);transition:opacity 0.7s ease,transform 0.7s ease;}
+.reveal.visible{opacity:1;transform:translateY(0);}
+
+@media(max-width:1100px){
+  .spanning-grid{grid-template-columns:1fr;}
+  .insights-grid{grid-template-columns:1fr 1fr;}
+  .outputs-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:768px){
+  nav{padding:14px 20px;}
+  .hero{grid-template-columns:1fr;}
+  .hero-right{display:none;}
+  .hero-left{padding:60px 20px 48px;}
+  .sec,.sec-dark,.sec-cta .cta-inner{padding:60px 20px;}
+  .sec-header{flex-direction:column;}
+  .insights-grid,.outputs-grid{grid-template-columns:1fr;}
+  .sec-navfoot{grid-template-columns:1fr;}
+  .nf-prev{border-right:none;border-bottom:1px solid var(--border);}
+  .nf-prev,.nf-next{padding:32px 20px;}
+  footer{flex-direction:column;gap:12px;padding:24px 20px;}
+}
+
+.nav-actions{display:flex;align-items:center;gap:14px;}
+.lang-toggle{display:flex;align-items:center;border:1px solid var(--border-dk);border-radius:4px;overflow:hidden;background:var(--bg);}
+.lang-btn{padding:5px 10px;background:none;border:none;cursor:pointer;color:var(--ink-dim);font-family:'JetBrains Mono',monospace;font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase;transition:all 0.2s;}
+.lang-btn.active{background:var(--ink);color:#fff;}
+.lang-sep{width:1px;height:20px;background:var(--border-dk);}
+@media(max-width:960px){.nav-actions{gap:10px;}.lang-btn{padding:5px 9px;}}
+@media(max-width:600px){.nav-actions{gap:8px;}.nav-back{padding:5px 10px;}.lang-btn{font-size:0.56rem;padding:5px 8px;}}
+
+</style>
+</head>
+<body>
+<div id="progress-bar"></div>
+
+<nav>
+  <a href="../../index.html" class="nav-id">
+    <div class="nav-dot"></div>
+    <span class="nav-name">Ishan Sewnandan</span>
+  </a>
+  <div class="nav-actions">
+    <div class="lang-toggle">
+      <button class="lang-btn" id="btn-en" onclick="setLang('en')">EN</button>
+      <div class="lang-sep"></div>
+      <button class="lang-btn" id="btn-nl" onclick="setLang('nl')">NL</button>
+    </div>
+    <a href="../../index.html" class="nav-back" id="nav-back-btn">
+      <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 2L2 5l4 3"/></svg>
+      <span id="nav-back-text">Back to portfolio</span>
+    </a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-left">
+    <div class="hero-num">005</div>
+    <div class="hero-tag">Labour Market Analysis · NLP</div>
+    <h1 class="hero-title">Labour Market<br><em>Insights</em> NL</h1>
+    <p class="hero-desc">Mapping skill gaps and demand shifts in the Dutch tech sector using UWV open data — spanning indicator analysis, NLP on job titles, and trend visualisation per region.</p>
+    <div class="hero-meta">
+      <div class="meta-row"><span>Status</span><div class="meta-dot"></div><strong>Completed · 2025</strong></div>
+      <div class="meta-row"><span>Data</span><div class="meta-dot"></div><strong>UWV werk.nl · CBS 85039NED</strong></div>
+      <div class="meta-row"><span>Tools</span><div class="meta-dot"></div><strong>Python · NLTK · Plotly · Pandas</strong></div>
+      <div class="meta-row"><span>Output</span><div class="meta-dot"></div><strong style="color:var(--accent);">5 interactieve visualisaties</strong></div>
+    </div>
+  </div>
+
+  <!-- ANIMATED SKILL GAP SCATTER -->
+  <div class="hero-right">
+    <div class="scatter-wrap">
+      <div class="scatter-label">
+        <span>Skill Gap · Dutch Tech 2024</span>
+        <span>vraag vs aanbod</span>
+      </div>
+      <canvas id="scatter-canvas"></canvas>
+      <div class="scatter-legend">
+        <div class="scatter-legend-item"><div class="scatter-legend-dot" style="background:#EF4444"></div>Kritiek tekort</div>
+        <div class="scatter-legend-item"><div class="scatter-legend-dot" style="background:#F59E0B"></div>Tekort</div>
+        <div class="scatter-legend-item"><div class="scatter-legend-dot" style="background:#5C8A3C"></div>Balans</div>
+        <div class="scatter-legend-item"><div class="scatter-legend-dot" style="background:#3B82F6"></div>Surplus</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SPANNINGSINDICATOR -->
+<section class="sec reveal">
+  <div class="sec-header">
+    <div>
+      <span class="sh-tag">// 01 — spanning</span>
+      <h2 class="sh-title">Arbeidsmarkt<br><em>krapte</em> per beroep</h2>
+    </div>
+    <p class="sh-desc">De UWV Spanningsindicator meet de verhouding vacatures / kortdurend werkzoekenden. Hoger = krapper. ICT-beroepen domineren de top.</p>
+  </div>
+
+  <div class="spanning-grid">
+    <div class="spanning-bars" id="spanning-bars">
+      <div class="sbar">
+        <div class="sbar-top"><span class="sbar-beroep">Cybersecurity specialisten</span><span><span class="krapte-badge" style="background:#FEF2F2;color:#991B1B;">Zeer krap</span><span class="sbar-val">9.1×</span></span></div>
+        <div class="sbar-track"><div class="sbar-fill" data-width="100%" style="background:#EF4444;"></div></div>
+      </div>
+      <div class="sbar">
+        <div class="sbar-top"><span class="sbar-beroep">DevOps engineers</span><span><span class="krapte-badge" style="background:#FEF2F2;color:#991B1B;">Zeer krap</span><span class="sbar-val">8.8×</span></span></div>
+        <div class="sbar-track"><div class="sbar-fill" data-width="97%" style="background:#EF4444;"></div></div>
+      </div>
+      <div class="sbar">
+        <div class="sbar-top"><span class="sbar-beroep">Software developers</span><span><span class="krapte-badge" style="background:#FEF2F2;color:#991B1B;">Zeer krap</span><span class="sbar-val">8.4×</span></span></div>
+        <div class="sbar-track"><div class="sbar-fill" data-width="92%" style="background:#EF4444;"></div></div>
+      </div>
+      <div class="sbar">
+        <div class="sbar-top"><span class="sbar-beroep">Elektriciens</span><span><span class="krapte-badge" style="background:#FEF2F2;color:#991B1B;">Zeer krap</span><span class="sbar-val">8.2×</span></span></div>
+        <div class="sbar-track"><div class="sbar-fill" data-width="90%" style="background:#FB923C;"></div></div>
+      </div>
+      <div class="sbar">
+        <div class="sbar-top"><span class="sbar-beroep">Cloud engineers</span><span><span class="krapte-badge" style="background:#FFF7ED;color:#9A3412;">Krap</span><span class="sbar-val">7.6×</span></span></div>
+        <div class="sbar-track"><div class="sbar-fill" data-width="84%" style="background:#FB923C;"></div></div>
+      </div>
+      <div class="sbar">
+        <div class="sbar-top"><span class="sbar-beroep">Bouwvakkers</span><span><span class="krapte-badge" style="background:#FFF7ED;color:#9A3412;">Krap</span><span class="sbar-val">7.1×</span></span></div>
+        <div class="sbar-track"><div class="sbar-fill" data-width="78%" style="background:#FB923C;"></div></div>
+      </div>
+      <div class="sbar">
+        <div class="sbar-top"><span class="sbar-beroep">Data engineers</span><span><span class="krapte-badge" style="background:#FFF7ED;color:#9A3412;">Krap</span><span class="sbar-val">6.9×</span></span></div>
+        <div class="sbar-track"><div class="sbar-fill" data-width="76%" style="background:#F59E0B;"></div></div>
+      </div>
+      <div class="sbar">
+        <div class="sbar-top"><span class="sbar-beroep">Data analisten</span><span><span class="krapte-badge" style="background:#FFF7ED;color:#9A3412;">Krap</span><span class="sbar-val">6.2×</span></span></div>
+        <div class="sbar-track"><div class="sbar-fill" data-width="68%" style="background:#F59E0B;"></div></div>
+      </div>
+    </div>
+
+    <!-- Skill gap table -->
+    <table class="skill-table">
+      <thead>
+        <tr>
+          <th>Skill</th>
+          <th>Vraag</th>
+          <th>Aanbod</th>
+          <th>Gap</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><div class="skill-name">Cybersecurity</div></td><td>0.89</td><td>0.31</td><td><div class="gap-bar-wrap"><div class="gap-bar-track"><div class="gap-bar-fill" style="width:100%;background:#EF4444;height:100%;border-radius:3px;"></div></div></div></td><td><span class="status-badge" style="background:#FEF2F2;color:#991B1B;">Kritiek</span></td></tr>
+        <tr><td><div class="skill-name">Azure</div></td><td>0.78</td><td>0.52</td><td><div class="gap-bar-wrap"><div class="gap-bar-track"><div class="gap-bar-fill" style="width:72%;background:#EF4444;height:100%;border-radius:3px;"></div></div></div></td><td><span class="status-badge" style="background:#FEF2F2;color:#991B1B;">Kritiek</span></td></tr>
+        <tr><td><div class="skill-name">dbt</div></td><td>0.52</td><td>0.28</td><td><div class="gap-bar-wrap"><div class="gap-bar-track"><div class="gap-bar-fill" style="width:65%;background:#F59E0B;height:100%;border-radius:3px;"></div></div></div></td><td><span class="status-badge" style="background:#FEF3C7;color:#92400E;">Tekort</span></td></tr>
+        <tr><td><div class="skill-name">Machine Learning</div></td><td>0.65</td><td>0.41</td><td><div class="gap-bar-wrap"><div class="gap-bar-track"><div class="gap-bar-fill" style="width:60%;background:#F59E0B;height:100%;border-radius:3px;"></div></div></div></td><td><span class="status-badge" style="background:#FEF3C7;color:#92400E;">Tekort</span></td></tr>
+        <tr><td><div class="skill-name">Python</div></td><td>0.92</td><td>0.78</td><td><div class="gap-bar-wrap"><div class="gap-bar-track"><div class="gap-bar-fill" style="width:38%;background:#5C8A3C;height:100%;border-radius:3px;"></div></div></div></td><td><span class="status-badge" style="background:#EEF5E8;color:#3A6024;">Balans</span></td></tr>
+        <tr><td><div class="skill-name">SQL</div></td><td>0.88</td><td>0.82</td><td><div class="gap-bar-wrap"><div class="gap-bar-track"><div class="gap-bar-fill" style="width:16%;background:#5C8A3C;height:100%;border-radius:3px;"></div></div></div></td><td><span class="status-badge" style="background:#EEF5E8;color:#3A6024;">Balans</span></td></tr>
+        <tr><td><div class="skill-name">Excel</div></td><td>0.76</td><td>0.88</td><td><div class="gap-bar-wrap"><div class="gap-bar-track"><div class="gap-bar-fill" style="width:30%;background:#3B82F6;height:100%;border-radius:3px;"></div></div></div></td><td><span class="status-badge" style="background:#EFF6FF;color:#1E40AF;">Surplus</span></td></tr>
+        <tr><td><div class="skill-name">R</div></td><td>0.42</td><td>0.55</td><td><div class="gap-bar-wrap"><div class="gap-bar-track"><div class="gap-bar-fill" style="width:35%;background:#3B82F6;height:100%;border-radius:3px;"></div></div></div></td><td><span class="status-badge" style="background:#EFF6FF;color:#1E40AF;">Surplus</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- KEY INSIGHTS (dark) -->
+<section class="sec sec-dark reveal">
+  <div class="sec-header">
+    <div>
+      <span class="sh-tag">// 02 — findings</span>
+      <h2 class="sh-title">Three <em>structural</em><br>labour market shifts</h2>
+    </div>
+    <p class="sh-desc">Derived from UWV spanning data 2023–2024 combined with CBS labour participation figures across 35 labour market regions.</p>
+  </div>
+
+  <div class="insights-grid">
+    <div class="insight-card red">
+      <span class="ic-icon" style="font-family:'Instrument Serif',serif;font-style:italic;font-size:1.6rem;color:rgba(255,255,255,0.2);display:block;margin-bottom:14px;">01</span>
+      <div class="ic-stat red">34 / 35</div>
+      <div class="ic-label">regio's met zeer krappe ICT-markt</div>
+      <p class="ic-body">In 34 van de 35 Nederlandse arbeidsmarktregio's is de ICT-arbeidsmarkt krap tot zeer krap (Q3 2025). Alleen Flevoland scoort gemiddeld. Voor werkgevers betekent dit structurele wervingsmoeilijkheden.</p>
+    </div>
+    <div class="insight-card amber">
+      <span class="ic-icon" style="font-family:'Instrument Serif',serif;font-style:italic;font-size:1.6rem;color:rgba(255,255,255,0.2);display:block;margin-bottom:14px;">02</span>
+      <div class="ic-stat amber">+31%</div>
+      <div class="ic-label">groei vacatures AI/ML engineers (2023–2024)</div>
+      <p class="ic-body">AI- en machine learning-rollen tonen de snelste vraaggroei van alle ICT-beroepen. Het aanbod blijft echter achter: slechts 28% van actieve CV's noemt ML-gerelateerde skills expliciet.</p>
+    </div>
+    <div class="insight-card green">
+      <span class="ic-icon" style="font-family:'Instrument Serif',serif;font-style:italic;font-size:1.6rem;color:rgba(255,255,255,0.2);display:block;margin-bottom:14px;">03</span>
+      <div class="ic-stat green">Azure · dbt · MLOps</div>
+      <div class="ic-label">hoogste skill gap — kritiek tekort</div>
+      <p class="ic-body">Cloud-specifieke tools (Azure, AWS), moderne data-stack skills (dbt, Airflow) en MLOps-kennis tonen het grootste structurele tekort. Opleiding en bijscholing op deze tools biedt het snelste rendement.</p>
+    </div>
+  </div>
+</section>
+
+<!-- OUTPUTS -->
+<section class="sec reveal">
+  <div class="sec-header">
+    <div>
+      <span class="sh-tag">// 03 — outputs</span>
+      <h2 class="sh-title">Five <em>interactive</em><br>visualisations</h2>
+    </div>
+    <p class="sh-desc">All charts are exported as standalone Plotly HTML files — fully interactive, no server required.</p>
+  </div>
+
+  <div class="outputs-grid">
+    <div class="output-card">
+      <div class="oc-badge">Plotly</div>
+      <span class="oc-icon"></span>
+      <div class="oc-name">Top krappste beroepen</div>
+      <p class="oc-desc">Horizontale bar chart van de 10 krappste beroepen op spanningsindicator — met drempelwaarde lijn.</p>
+    </div>
+    <div class="output-card">
+      <div class="oc-badge">Plotly</div>
+      <span class="oc-icon" style="font-family:'Syne',sans-serif;font-size:0.6rem;font-weight:700;color:var(--accent);background:var(--tag-bg);padding:4px 7px;border-radius:2px;display:inline-block;margin-bottom:12px;">.html</span>
+      <div class="oc-name">Trendlijn per sector</div>
+      <p class="oc-desc">Spline trendlijn ICT/Tech vs overige sectoren over 8 kwartalen (2023–2024).</p>
+    </div>
+    <div class="output-card">
+      <div class="oc-badge">Plotly</div>
+      <span class="oc-icon" style="font-family:'Syne',sans-serif;font-size:0.6rem;font-weight:700;color:var(--accent);background:var(--tag-bg);padding:4px 7px;border-radius:2px;display:inline-block;margin-bottom:12px;">.html</span>
+      <div class="oc-name">Beroep × Regio heatmap</div>
+      <p class="oc-desc">Interactieve heatmap — hover op elke cel voor exacte spanningsscore per beroep per regio.</p>
+    </div>
+    <div class="output-card">
+      <div class="oc-badge">NLP</div>
+      <span class="oc-icon" style="font-family:'Syne',sans-serif;font-size:0.6rem;font-weight:700;color:var(--blue);background:var(--tag-bg);padding:4px 7px;border-radius:2px;display:inline-block;margin-bottom:12px;">.html</span>
+      <div class="oc-name">Skill Gap Bubble Chart</div>
+      <p class="oc-desc">Scatter plot vraag vs aanbod per skill — boven de diagonaal = tekort, onder = surplus.</p>
+    </div>
+    <div class="output-card">
+      <div class="oc-badge">Plotly</div>
+      <span class="oc-icon" style="font-family:'Syne',sans-serif;font-size:0.6rem;font-weight:700;color:var(--accent);background:var(--tag-bg);padding:4px 7px;border-radius:2px;display:inline-block;margin-bottom:12px;">.html</span>
+      <div class="oc-name">Vraag vs Aanbod skills</div>
+      <p class="oc-desc">Overlay bar chart — groene vraagbalk vs grijze aanbodsbalk voor top 12 tech skills.</p>
+    </div>
+  </div>
+</section>
+
+<!-- TOOLS -->
+<section class="sec reveal" style="padding-top:40px;padding-bottom:80px;border-top:1px solid var(--border);">
+  <div class="sec-header" style="margin-bottom:0;">
+    <div><span class="sh-tag">// 04 — stack</span><h2 class="sh-title">Tools &amp; <em>bronnen</em></h2></div>
+  </div>
+  <div class="tools-row">
+    <div class="tool-pill"><div class="tool-dot"></div>Python 3.10</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Pandas</div>
+    <div class="tool-pill"><div class="tool-dot"></div>NumPy</div>
+    <div class="tool-pill"><div class="tool-dot"></div>NLTK</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Plotly</div>
+    <div class="tool-pill"><div class="tool-dot"></div>cbsodata</div>
+    <div class="tool-pill"><div class="tool-dot"></div>UWV werk.nl datasets</div>
+    <div class="tool-pill"><div class="tool-dot"></div>CBS 85039NED</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Requests</div>
+    <div class="tool-pill"><div class="tool-dot"></div>NLP · Stopwords</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Spanningsindicator</div>
+    <div class="tool-pill"><div class="tool-dot"></div>Open data CC-BY 4.0</div>
+  </div>
+</section>
+
+<!-- FINAL CTA -->
+<section class="sec-cta">
+  <div class="cta-inner">
+    <div class="cta-tag">// Portfolio volledig</div>
+    <h2 class="cta-title">All five projects<br><em>completed</em></h2>
+    <p class="cta-desc">From logistics KPIs at DFDS to housing forecasts, energy clustering, churn prediction, and labour market analysis — five end-to-end data projects with real Dutch open data.</p>
+    <div class="cta-buttons">
+      <a href="index.html" class="cta-btn primary">← Back to portfolio</a>
+      <a href="mailto:ishan@example.com" class="cta-btn ghost">Get in touch</a>
+    </div>
+  </div>
+</section>
+
+<!-- NAV FOOTER -->
+<div class="sec-navfoot">
+  <a href="project-004.html" class="nf-prev">
+    <span class="nf-dir">← Previous project</span>
+    <span class="nf-label">004 — E-commerce Churn Prediction</span>
+    <span class="nf-sub">Python · XGBoost · SHAP · Excel</span>
+  </a>
+  <a href="index.html" class="nf-next" style="align-items:flex-end;text-align:right;">
+    <span class="nf-dir">Back to overview →</span>
+    <span class="nf-label">Portfolio Homepage</span>
+    <span class="nf-sub">Ishan Sewnandan · Data Analyst</span>
+  </a>
+</div>
+
+<footer>
+  <span>© 2025 — Ishan Sewnandan · Rotterdam</span>
+  <span>Data Analyst · UWV Open Data · Project 005 / 005</span>
+</footer>
+
+<script>
+window.addEventListener('scroll', () => {
+  document.getElementById('progress-bar').style.width =
+    Math.min(window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100, 100) + '%';
+},{passive:true});
+
+const obs = new IntersectionObserver(e => e.forEach(x => { if(x.isIntersecting){x.target.classList.add('visible');obs.unobserve(x.target);}}),{threshold:0.1});
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+// Animate spanning bars
+const spanObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.sbar-fill').forEach((b,i) => {
+        setTimeout(() => { b.style.width = b.dataset.width; }, i * 100);
+      });
+      spanObs.unobserve(e.target);
+    }
+  });
+},{threshold:0.2});
+document.querySelectorAll('#spanning-bars').forEach(el => spanObs.observe(el));
+
+// Stagger output cards
+document.querySelectorAll('.output-card').forEach((el,i) => {
+  el.style.opacity='0'; el.style.transform='translateY(14px)';
+  el.style.transition=`opacity 0.45s ease ${i*0.08}s, transform 0.45s ease ${i*0.08}s`;
+});
+const outObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting){
+      e.target.querySelectorAll('.output-card').forEach(c => { c.style.opacity='1'; c.style.transform='translateY(0)'; });
+    }
+  });
+},{threshold:0.1});
+document.querySelectorAll('.outputs-grid').forEach(el => outObs.observe(el));
+
+// ── Animated Skill Gap Scatter Canvas ────────────────────────────────────────
+(function(){
+  const canvas = document.getElementById('scatter-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  const skills = [
+    {name:'Python',     demand:0.92, supply:0.78},
+    {name:'SQL',        demand:0.88, supply:0.82},
+    {name:'Power BI',   demand:0.81, supply:0.65},
+    {name:'Azure',      demand:0.78, supply:0.52},
+    {name:'Excel',      demand:0.76, supply:0.88},
+    {name:'Git',        demand:0.82, supply:0.71},
+    {name:'ML',         demand:0.65, supply:0.41},
+    {name:'Docker',     demand:0.55, supply:0.41},
+    {name:'dbt',        demand:0.52, supply:0.28},
+    {name:'Spark',      demand:0.45, supply:0.29},
+    {name:'R',          demand:0.42, supply:0.55},
+    {name:'PyTorch',    demand:0.32, supply:0.26},
+    {name:'Databricks', demand:0.45, supply:0.28},
+  ];
+
+  function getColor(d, s) {
+    const gap = d - s;
+    if(gap > 0.2)  return '#EF4444';
+    if(gap > 0.05) return '#F59E0B';
+    if(gap > -0.1) return '#5C8A3C';
+    return '#3B82F6';
+  }
+
+  let W, H;
+  function resize(){
+    const rect = canvas.parentElement.getBoundingClientRect();
+    W = canvas.width  = rect.width || 460;
+    H = canvas.height = 300;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  const PAD = 40;
+  let progress = 0;
+
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    const pw = W - PAD*2, ph = H - PAD*2;
+
+    // Axes
+    ctx.strokeStyle = '#C8C4BE'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(PAD, PAD); ctx.lineTo(PAD, H-PAD); ctx.lineTo(W-PAD, H-PAD); ctx.stroke();
+
+    // Axis labels
+    ctx.fillStyle = '#888'; ctx.font = '9px JetBrains Mono, monospace';
+    ctx.fillText('Aanbod →', W-PAD-40, H-PAD+14);
+    ctx.save(); ctx.translate(PAD-14, PAD+30); ctx.rotate(-Math.PI/2); ctx.fillText('Vraag →', 0, 0); ctx.restore();
+
+    // Diagonal equilibrium line
+    ctx.strokeStyle = '#E0DDD8'; ctx.lineWidth = 1; ctx.setLineDash([4,6]);
+    ctx.beginPath(); ctx.moveTo(PAD, H-PAD); ctx.lineTo(W-PAD, PAD); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Grid
+    [0.25, 0.5, 0.75].forEach(t => {
+      ctx.strokeStyle = '#E0DDD8'; ctx.lineWidth = 0.5;
+      const gx = PAD + t*pw, gy = H-PAD - t*ph;
+      ctx.beginPath(); ctx.moveTo(gx, PAD); ctx.lineTo(gx, H-PAD); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(PAD, gy); ctx.lineTo(W-PAD, gy); ctx.stroke();
+    });
+
+    // Points
+    skills.forEach((s, i) => {
+      const delay = i * 0.06;
+      const t = Math.max(0, Math.min(1, (progress - delay) / 0.4));
+      if(t <= 0) return;
+
+      const x = PAD + s.supply * pw;
+      const y = H - PAD - s.demand * ph;
+      const color = getColor(s.demand, s.supply);
+      const r = 5 + s.demand * 4;
+
+      ctx.beginPath();
+      ctx.arc(x, y, r * t, 0, Math.PI*2);
+      ctx.fillStyle = color + 'CC';
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+
+      if(t > 0.8){
+        ctx.fillStyle = '#3A3A3A';
+        ctx.font = `bold 8px JetBrains Mono, monospace`;
+        ctx.fillText(s.name, x + r + 3, y + 3);
+      }
+    });
+
+    if(progress < 1.5) {
+      progress += 0.018;
+      requestAnimationFrame(draw);
+    }
+  }
+
+  // Trigger when in view
+  const io = new IntersectionObserver(entries => {
+    if(entries[0].isIntersecting){ draw(); io.disconnect(); }
+  },{threshold:0.3});
+  io.observe(canvas);
+})();
+</script>
+
+<script>
+const translations = [{"selector": ".hero-tag", "en": "Labour Market Analysis · NLP", "nl": "Arbeidsmarktanalyse · NLP"}, {"selector": "h1.hero-title", "en": "Labour Market <em>Insights</em> NL", "nl": "Arbeidsmarkt <em>inzichten</em> NL"}, {"selector": ".hero-desc", "en": "Mapping skill gaps and demand shifts in the Dutch tech sector using UWV open data — spanning indicator analysis, NLP on job titles, and trend visualisation per region.", "nl": "In kaart brengen van skill gaps en vraagverschuivingen in de Nederlandse technologiesector met UWV open data — via spanningsindicatoranalyse, NLP op functietitels en trendvisualisatie per regio."}, {"selector": "section:nth-of-type(2) .sh-tag", "en": "// 01 — tension", "nl": "// 01 — spanning"}, {"selector": "section:nth-of-type(2) .sh-title", "en": "Labour market <em>tightness</em><br>per profession", "nl": "Arbeidsmarkt-<em>spanning</em><br>per beroep"}, {"selector": "section:nth-of-type(2) .sh-desc", "en": "The UWV tension indicator measures the ratio of vacancies to short-term job seekers. Higher values mean tighter labour markets. ICT professions dominate the top.", "nl": "De UWV-spanningsindicator meet de verhouding tussen vacatures en kortdurend werkzoekenden. Hogere waarden betekenen een krappere arbeidsmarkt. ICT-beroepen domineren de top."}, {"selector": "section:nth-of-type(3) .sh-tag", "en": "// 02 — findings", "nl": "// 02 — bevindingen"}, {"selector": "section:nth-of-type(3) .sh-title", "en": "Three structural labour<br><em>market shifts</em>", "nl": "Drie structurele arbeidsmarkt-<br><em>verschuivingen</em>"}, {"selector": "section:nth-of-type(3) .sh-desc", "en": "Derived from UWV tension data 2023–2024 combined with CBS labour participation figures across 35 labour market regions.", "nl": "Afgeleid uit UWV-spanningsdata 2023–2024 gecombineerd met CBS-cijfers over arbeidsparticipatie in 35 arbeidsmarktregio’s."}, {"selector": "section:nth-of-type(4) .sh-tag", "en": "// 03 — outputs", "nl": "// 03 — outputs"}, {"selector": "section:nth-of-type(4) .sh-title", "en": "Five interactive <em>visualisations</em>", "nl": "Vijf interactieve <em>visualisaties</em>"}, {"selector": "section:nth-of-type(4) .sh-desc", "en": "All charts are exported as standalone Plotly HTML files — fully interactive, no server required.", "nl": "Alle grafieken zijn geëxporteerd als standalone Plotly-HTML-bestanden — volledig interactief, zonder server."}, {"selector": "section:nth-of-type(5) .sh-tag", "en": "// 04 — stack", "nl": "// 04 — stack"}, {"selector": "section:nth-of-type(5) .sh-title", "en": "Tools & <em>sources</em>", "nl": "Tools & <em>bronnen</em>"}, {"selector": ".cta-tag", "en": "// Portfolio complete", "nl": "// Portfolio compleet"}, {"selector": ".cta-title", "en": "All five <em>projects</em> completed", "nl": "Alle vijf <em>projecten</em> afgerond"}, {"selector": ".cta-copy", "en": "From logistics KPIs at DFDS to housing forecasts, energy clustering, churn modelling, and labour market NLP — this portfolio reflects a broad data skill set across analytics, machine learning, and stakeholder communication.", "nl": "Van logistieke KPI’s bij DFDS tot woningmarktvoorspellingen, energieclustering, churnmodellering en arbeidsmarkt-NLP — dit portfolio laat een breed data-profiel zien over analytics, machine learning en stakeholdercommunicatie."}, {"selector": ".cta-btn.primary", "en": "← Back to portfolio", "nl": "← Terug naar portfolio"}, {"selector": ".cta-btn.ghost", "en": "Get in touch", "nl": "Neem contact op"}, {"selector": ".navfoot-prev .navfoot-dir", "en": "← Previous project", "nl": "← Vorig project"}, {"selector": ".navfoot-next .navfoot-dir", "en": "Back to overview →", "nl": "Terug naar overzicht →"}, {"selector": ".navfoot-next .navfoot-label", "en": "Portfolio Homepage", "nl": "Portfolio homepage"}];
+function applyTranslations(lang) {
+  document.documentElement.lang = lang;
+  translations.forEach(item => {
+    document.querySelectorAll(item.selector).forEach(el => {
+      el.innerHTML = item[lang] ?? item.en;
+    });
+  });
+  const backText = document.getElementById('nav-back-text');
+  if (backText) backText.textContent = lang === 'nl' ? 'Terug naar portfolio' : 'Back to portfolio';
+  const enBtn = document.getElementById('btn-en');
+  const nlBtn = document.getElementById('btn-nl');
+  if (enBtn) enBtn.classList.toggle('active', lang === 'en');
+  if (nlBtn) nlBtn.classList.toggle('active', lang === 'nl');
+}
+function setLang(lang) {
+  localStorage.setItem('lang', lang);
+  applyTranslations(lang);
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const lang = localStorage.getItem('lang') || 'en';
+  applyTranslations(lang);
+});
+</script>
+
+</body>
+</html>
